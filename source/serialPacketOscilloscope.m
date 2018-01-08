@@ -1,10 +1,7 @@
 clear;
 
-% customizeLens = 3;
-
 s = kSerial(115200, 'clear');
 s.setRecordBufferSize(1024 * 16);
-% s.setCustomizeBuffer(customizeLens);
 s.setRecvThreshold(0);
 s.open();
 
@@ -12,9 +9,10 @@ fig = figure(1);
 set(fig, 'Position', [100, 200, 1200, 460], 'color', 'w');
 
 subFig(1) = subplot(1, 1, 1);
-osc = kSerialOscilloscope();
+osc = kOscilloscope();
 osc.setWindow(20000 * [1, -1], 400);
-osc.curveChannel = 3: 5;
+osc.curveBufferLens = 16 * 1024;
+osc.curveChannel = 3;
 osc.curveColor = {'r', 'g', 'b'};
 osc.curveScale = (1) * ones(1, size(osc.curveColor, 2));
 osc.initOscilloscope(subFig(1), 'runtime', 'data');
@@ -40,14 +38,13 @@ while ishandle(osc.fig)
         quat = s.ks.data(28: 31, :) / 10000;        % 
         orie = s.ks.data(32: 36, :) / 80;           % +- 360 deg
         angt = s.ks.data(37: 39, :) / 80;           % +- 360 deg
-        gacc = s.ks.data(40: 42, :) / 7500 * 9.8;   % +- 39.2 m/s^2
-        lacc = s.ks.data(43: 45, :) / 7500 * 9.8;   % +- 39.2 m/s^2
+        lacc = s.ks.data(40: 42, :) / 7500 * 9.8;   % +- 39.2 m/s^2
 
         fprintf('[%06i][%02i]', s.ks.lens, packetLens);
         fprintf('[%02i:%02i:%02i][%4.0fHz] ', tt(1), tt(2), fix(tt(3) / 10), freq);
-%         fprintf('rgyr[%8.2f, %8.2f, %8.2f] ', rgyr(:, end));
-%         fprintf('racc[%6.2f, %6.2f, %6.2f] ', racc(:, end));
-%         fprintf('rmag[%7.2f, %7.2f, %7.2f] ', rmag(:, end));
+        fprintf('rgyr[%8.2f, %8.2f, %8.2f] ', rgyr(:, end));
+        fprintf('racc[%6.2f, %6.2f, %6.2f] ', racc(:, end));
+        fprintf('rmag[%7.2f, %7.2f, %7.2f] ', rmag(:, end));
 %         fprintf('cgyr[%8.2f, %8.2f, %8.2f] ', cgyr(:, end));
 %         fprintf('cacc[%6.2f, %6.2f, %6.2f] ', cacc(:, end));
 %         fprintf('cmag[%7.2f, %7.2f, %7.2f] ', cmag(:, end));
@@ -56,16 +53,11 @@ while ishandle(osc.fig)
 %         fprintf('gmag[%7.2f] ', gmag(:, end));
 %         fprintf('quat[%6.3f, %6.3f, %6.3f, %6.3f] ', quat(:, end));
 %         fprintf('orie[%7.2f, %7.2f, %7.2f, %7.2f, %7.2f] ', orie(:, end));
-        fprintf('angt[%7.2f, %7.2f, %7.2f] ', angt(:, end));
-%         fprintf('gacc[%6.2f, %6.2f, %6.2f] ', gacc(:, end));
+%         fprintf('angt[%7.2f, %7.2f, %7.2f] ', angt(:, end));
 %         fprintf('lacc[%6.2f, %6.2f, %6.2f] ', lacc(:, end));
         fprintf('\n');
 
-%         pkData = lacc(:, end - packetLens + 1 : end);
-%         save_data = [pkData(1, :); pkData(2, :); pkData(3, :)];
-
-%         s.updateCustomizeData(save_data);
-        osc.updateOscilloscope(s);
+        osc.updateOscilloscope(packetData(3 : 5, :));
     end
 end
 s.close();

@@ -6,15 +6,17 @@
 %   /_/|_|/_/ \__//___// .__//_/   \___/\_,_/ \__/  
 %                     /_/   github.com/KitSprout    
 %  
-%  @file    kSerialOscilloscope.m
+%  @file    kOscilloscope.m
 %  @author  KitSprout
 %  @date    08-Jan-2018
 %  @brief   
 % 
 
-classdef kSerialOscilloscope < handle
+classdef kOscilloscope < handle
 
 properties (SetAccess = public)
+    curveData;
+    curveBufferLens;
     curveChannel;
     curveScale;
     curveColor;
@@ -26,6 +28,7 @@ properties (SetAccess = private)
     fig;
     curve;
     window = struct;
+    count = 0;
 end
 
 methods
@@ -55,38 +58,44 @@ methods
         xlabel(osc.fig, xName);
         ylabel(osc.fig, yName);
         axis(osc.fig, [osc.window.xmin, osc.window.xmax, osc.window.ymin, osc.window.ymax]);
-        for i = 1 : size(osc.curveChannel, 2)
+        for i = 1 : osc.curveChannel
             osc.curve(i) = plot(osc.fig, 0, 0, osc.curveColor{i});
         end
         if isempty(osc.curveScale)
-            osc.curveScale = ones(size(osc.curveChannel));
+            osc.curveScale = ones(1, osc.curveChannel);
         end
         if isempty(osc.curveOffset)
-            osc.curveOffset = zeros(size(osc.curveChannel));
+            osc.curveOffset = zeros(1, osc.curveChannel);
         end
         if isempty(osc.curveMarkerSize)
-            osc.curveMarkerSize = 12 * ones(size(osc.curveChannel));
+            osc.curveMarkerSize = 12 * ones(1, osc.curveChannel);
         end
+        osc.curveData = zeros(osc.curveChannel, osc.curveBufferLens);
     end
 
-    function updateOscilloscope( osc, s )
+    function updateOscilloscope( osc, data )
         delete(osc.curve);
 
-        runtimes = (s.ks.lens - osc.window.width + 1) : s.ks.lens;
-        if s.ks.lens - osc.window.width + 1 > 0
-            for i = 1 : size(osc.curveChannel, 2)
-                plt = plot(osc.fig, runtimes, s.ks.data(osc.curveChannel(i), end - osc.window.width + 1 : end) .* osc.curveScale(i) + osc.curveOffset(i), osc.curveColor{i});
+        lens = size(data, 2);
+        osc.count = osc.count + lens;
+        osc.curveData = [osc.curveData(:, lens + 1 : end), data];
+        runtimes = (osc.count - osc.window.width + 1) : osc.count;
+
+        if osc.count - osc.window.width + 1 > 0
+            for i = 1 : osc.curveChannel
+                plt = plot(osc.fig, runtimes, osc.curveData(i, end - osc.window.width + 1 : end) .* osc.curveScale(i) + osc.curveOffset(i), osc.curveColor{i});
                 plt.MarkerSize = osc.curveMarkerSize(i);
                 osc.curve(i) = plt;
             end
         else
-            for i = 1 : size(osc.curveChannel, 2)
-                plt = plot(osc.fig, runtimes, [zeros(1, osc.window.width - s.ks.lens), s.ks.data(osc.curveChannel(i), :)] .* osc.curveScale(i) + osc.curveOffset(i), osc.curveColor{i});
+            for i = 1 : osc.curveChannel
+                plt = plot(osc.fig, runtimes, [zeros(1, osc.window.width - osc.count), osc.curveData(i, end - osc.count + 1 : end)] .* osc.curveScale(i) + osc.curveOffset(i), osc.curveColor{i});
                 plt.MarkerSize = osc.curveMarkerSize(i);
                 osc.curve(i) = plt;
             end
         end
-        osc.window.xmin = osc.window.xmin + s.packet.availableCount;
+
+        osc.window.xmin = osc.window.xmin + lens;
         osc.window.xmax = osc.window.xmin + osc.window.width;
         axis(osc.fig, [osc.window.xmin, osc.window.xmax, osc.window.ymin, osc.window.ymax]);
         drawnow

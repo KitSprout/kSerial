@@ -8,14 +8,14 @@
 %  
 %  @file    kSerial.m
 %  @author  KitSprout
-%  @date    02-Jul-2017
+%  @date    08-Jan-2018
 %  @brief   
 % 
 
 classdef kSerial < handle
 
 properties (SetAccess = public)
-
+    ks = struct;
 end
 
 properties (SetAccess = private)
@@ -24,7 +24,6 @@ properties (SetAccess = private)
     baudRate = 115200;
     inputBufferSize = 8192;
 
-    ks     = struct;
     tick   = struct;
     record = struct;
     packet = struct;
@@ -104,6 +103,8 @@ methods
         s.record.info       = [];
         s.record.data       = [];
         s.record.bufferSize = 0;
+        s.record.custdata   = [];
+        s.record.custlens   = 0;
         s.record.count      = 0;
         s.record.totalBytes = 0;
 
@@ -116,6 +117,8 @@ methods
         s.tick.count = s.record.count;
         s.tick.tset  = 0;
         s.tick.freq  = 0;
+
+        tic
     end
 
     function open( s )
@@ -135,6 +138,10 @@ methods
         bytes = length(data);
     end
 
+    function flushInputBuffer( s )
+        flushinput(s.serial);
+    end
+
     function delay( ~, delay )
         pause(delay);
     end
@@ -149,6 +156,17 @@ methods
         s.serial.InputBufferSize = s.inputBufferSize;
     end
 
+    function setCustomizeBuffer( s, customizeLens )
+        s.record.custlens = customizeLens;
+        s.record.custdata = zeros(s.record.custlens, s.record.bufferSize);
+    end
+
+    function updateCustomizeData( s, data )
+        [tp, lens] = size(data);
+        s.record.custdata(:, end - lens + 1 : end) = data;
+        s.ks.data(end - tp + 1 : end, end - lens + 1 : end) = data;
+    end
+
     function setRecordBufferSize( s, bufferSize )
         s.record.bufferSize = bufferSize;
         s.record.info = zeros(4, s.record.bufferSize);
@@ -160,6 +178,10 @@ methods
     end
 
     % [data, info, count] = s.packetRecv();
+    % info(1) : length
+    % info(2) : data type
+    % info(3) : parameter 1
+    % info(4) : parameter 2
     function varargout = packetRecv( s )
 
         % default value
@@ -247,8 +269,13 @@ methods
                                 s.record.info = [s.record.info(:, s.packet.availableCount + 1 : end), s.packet.info];
 
                                 s.ks.lens = s.record.count;
-                                s.ks.data = s.getRecordData();
                                 s.ks.info = s.getRecordInfo();
+                                if s.record.custlens > 0
+                                    s.record.custdata = [s.record.custdata(:, s.packet.availableCount + 1 : end), zeros(s.record.custlens, size(s.packet.data, 2))];
+                                    s.ks.data = [s.getRecordData(); s.getCustomizeData()];
+                                else
+                                    s.ks.data = s.getRecordData();
+                                end
                             end
                         end
                     end
@@ -267,7 +294,7 @@ methods
             case 1
                 % bytes = s.packetSend();
                 type     = s.typeConv('null');
-                sendbuff = uint8(['KS', 8, 0, 0, type, 13, 10]);
+                sendbuff = uint8(['KS', 8, type, 0, 0, 13, 10]);
             case 2
                 % bytes = s.packetSend(param);
                 param    = varargin{1};
@@ -319,15 +346,15 @@ methods
 
     end
 
-    % freq = s.getFreq(unit);                     ->  use system clock to calculate freq
-    % freq = s.getFreq(index, lengrh, unit);      ->  use packet sec/msc to calculate freq
+    % freq = s.getFreq(period);                 ->  use system clock to calculate freq
+    % freq = s.getFreq(index, lengrh, unit);    ->  use packet sec/msc to calculate freq
     function freq = getFreq( s, varargin )
         switch nargin
             case 2
-                unit = varargin{1};
+                period = varargin{1};
                 if s.tick.state
                     s.tick.tset = toc;
-                    if s.tick.tset >= unit
+                    if s.tick.tset >= period
                         s.tick.state = 0;
                         s.tick.freq  = fix((s.record.count - s.tick.count) / s.tick.tset);
                         s.tick.count = s.record.count;
@@ -335,7 +362,7 @@ methods
                     end
                 else
                     s.tick.tset = toc;
-                    if s.tick.tset >= unit
+                    if s.tick.tset >= period
                         s.tick.state = 1;
                         s.tick.freq  = fix((s.record.count - s.tick.count) / s.tick.tset);
                         s.tick.count = s.record.count;
@@ -367,6 +394,23 @@ methods
         end
     end
 
+    function varargout = getLostRate( s, index, freq, unit )
+        tt = s.ks.data(index(1), :) + s.ks.data(index(2), :) * unit;
+        dt = tt(2 : end) - tt(1 : end - 1);
+        res = find(dt > (1 / freq + 1e-6));
+        lost = size(res, 2);
+        rate = lost / s.ks.lens;
+        varargout = { rate, lost, dt };
+    end
+
+    function data = getCustomizeData( s )
+        if s.record.count < s.record.bufferSize
+            data = s.record.custdata(:, end - s.record.count + 1 : end);
+        else
+            data = s.record.custdata;
+        end
+    end
+
     function data = getRecordData( s )
         if s.record.count < s.record.bufferSize
             data = s.record.data(:, end - s.record.count + 1 : end);
@@ -383,8 +427,8 @@ methods
         end
     end
 
-    function save2mat( s, name, index )
-        fprintf('\n');
+    function fileName = save2mat( s, name, index )
+        fprintf('\nfile name : ');
         date = fix(clock);
         tag  = sprintf('_%04i%02i%02i_%02i%02i%02i.mat', date);
         fileName = strcat(name, tag);
