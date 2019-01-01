@@ -8,7 +8,7 @@
  * 
  *  @file    kSerial.h
  *  @author  KitSprout
- *  @date    20-Aug-2017
+ *  @date    01-JAN-2019
  *  @brief   
  * 
  */
@@ -22,18 +22,19 @@
 #endif
 
 /* Includes --------------------------------------------------------------------------------*/
+#include <stdint.h>
+
 #include "stm32f4xx.h"
 #include "algorithms\mathUnit.h"
 
 /* Exported types --------------------------------------------------------------------------*/
 /* Exported constants ----------------------------------------------------------------------*/
 /* Exported functions ----------------------------------------------------------------------*/  
-void      kSerial_Config( USART_TypeDef *USARTx );
-uint32_t  kSerial_Check( uint8_t *packet, void *param, uint16_t *lens, uint8_t *type );
-uint32_t  kSerial_Pack( uint8_t *packet, void *param, void *data, const uint16_t lens, const uint8_t type );
-uint32_t  kSerial_Unpack( uint8_t *packet, void *param, void *data, uint16_t *lens, uint8_t *type );
-uint32_t  kSerial_SendPacket( void *param, void *data, const uint16_t lens, const uint8_t type );
-uint32_t  kSerial_RecvPacket( void *param, void *data, uint16_t *lens, uint8_t *type );
+uint32_t  kSerial_Check( uint8_t *packet, void *param, uint8_t *type, uint16_t *lens );
+uint32_t  kSerial_Pack( uint8_t *packet, void *param, const uint8_t type, const uint16_t lens, void *pdata );
+uint32_t  kSerial_Unpack( uint8_t *packet, void *param, uint8_t *type, uint16_t *lens, void *pdata );
+uint32_t  kSerial_SendPacket( void *param, void *sdata, const uint16_t lens, const uint8_t type );
+uint32_t  kSerial_RecvPacket( void *param, void *rdata, uint16_t *lens, uint8_t *type );
 uint16_t  kSerial_GetPacketDataLens( uint16_t lens, uint8_t type );
 
 #ifdef __cplusplus
