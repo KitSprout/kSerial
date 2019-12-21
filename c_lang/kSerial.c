@@ -146,7 +146,7 @@ uint32_t kSerial_Pack( uint8_t *packet, const void *param, const uint32_t type, 
     uint32_t checksum = 0;
     uint32_t typeSize = kSerial_GetTypeSize(type);
 
-    packetDataBytes = (typeSize) ? (lens * typeSize) : (lens);
+    packetDataBytes = (typeSize > 1) ? (lens * typeSize) : (lens);
     lensHiBit = (packetDataBytes & 0x0F00) >> 4;
 
     packet[0] = 'K';                            /* header 'K'  */
@@ -189,15 +189,9 @@ uint32_t kSerial_Unpack( uint8_t *packet, void *param, uint32_t *type, uint32_t 
     status = kSerial_Check(packet, param, type, lens);
     if (status == KS_OK)
     {
-        uint32_t typeSize = kSerial_GetTypeSize(*type);
-
         for (uint32_t i = 0; i < *lens; i++)
         {
             ((uint8_t*)pdata)[i] = packet[7 + i];
-        }
-        if (typeSize)
-        {
-            *lens *= typeSize;
         }
     }
 
@@ -230,6 +224,7 @@ uint32_t kSerial_RecvPacket( void *param, void *rdata, uint32_t *lens, uint32_t 
     static uint32_t point = 0;
 
     uint32_t state;
+    uint32_t typeSize;
 
     ksRecvBuff[point] = kSerial_Recv();
     if (point > 6)
@@ -247,6 +242,11 @@ uint32_t kSerial_RecvPacket( void *param, void *rdata, uint32_t *lens, uint32_t 
                 point = 0;
                 index = 0;
                 bytes = 0;
+                typeSize = kSerial_GetTypeSize(*type);
+                if (typeSize > 1)
+                {
+                    *lens /= typeSize;
+                }
                 return KS_OK;
             }
         }
