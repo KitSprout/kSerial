@@ -8,7 +8,7 @@
  * 
  *  @file    kSerial.c
  *  @author  KitSprout
- *  @date    Dec-2019
+ *  @date    Jan-2020
  *  @brief   kSerial packet format :
  *           byte 1   : header 'K' (75)       [HK]
  *           byte 2   : header 'S' (83)       [HS]
@@ -23,12 +23,7 @@
  */
 
 /* Includes --------------------------------------------------------------------------------*/
-#include "serial.h"
 #include "kSerial.h"
-
-/** @addtogroup KS_Module
- *  @{
- */
 
 /* Define ----------------------------------------------------------------------------------*/
 /* Macro -----------------------------------------------------------------------------------*/
@@ -72,14 +67,14 @@ uint32_t kSerial_GetTypeSize( uint32_t type )
 /**
  *  @brief  kSerial_CheckHeader
  */
-uint32_t kSerial_CheckHeader( uint8_t *packet, void *param, uint32_t *type, uint32_t *lens )
+uint32_t kSerial_CheckHeader( uint8_t *packet, void *param, uint32_t *type, uint32_t *nbyte )
 {
     uint32_t checksum = 0;
 
     if ((packet[0] == 'K') && (packet[1] == 'S'))
     {
         *type = packet[3] & 0x0F;
-        *lens = (((uint32_t)packet[3] << 4) & 0x0F00) | packet[2];
+        *nbyte = (((uint32_t)packet[3] << 4) & 0x0F00) | packet[2];
         for (uint32_t i = 2; i < 6; i++)
         {
             checksum += packet[i];
@@ -99,9 +94,9 @@ uint32_t kSerial_CheckHeader( uint8_t *packet, void *param, uint32_t *type, uint
 /**
  *  @brief  kSerial_CheckEnd
  */
-uint32_t kSerial_CheckEnd( uint8_t *packet, const uint32_t lens )
+uint32_t kSerial_CheckEnd( uint8_t *packet, const uint32_t nbyte )
 {
-    if (packet[lens + 8 - 1] == '\r')
+    if (packet[nbyte + 8 - 1] == '\r')
     {
         return KS_OK;
     }
@@ -112,20 +107,20 @@ uint32_t kSerial_CheckEnd( uint8_t *packet, const uint32_t lens )
 /**
  *  @brief  kSerial_Check
  */
-uint32_t kSerial_Check( uint8_t *packet, void *param, uint32_t *type, uint32_t *lens )
+uint32_t kSerial_Check( uint8_t *packet, void *param, uint32_t *type, uint32_t *nbyte )
 {
     uint32_t checksum = 0;
 
     if ((packet[0] == 'K') && (packet[1] == 'S'))
     {
         *type = packet[3] & 0x0F;
-        *lens = (((uint32_t)packet[3] << 4) & 0x0F00) | packet[2];
+        *nbyte = (((uint32_t)packet[3] << 4) & 0x0F00) | packet[2];
         for (uint32_t i = 2; i < 6; i++)
         {
             checksum += packet[i];
         }
         checksum &= 0xFF;
-        if ((packet[6] == checksum) && (packet[*lens + 8 - 1] == '\r'))
+        if ((packet[6] == checksum) && (packet[*nbyte + 8 - 1] == '\r'))
         {
             ((uint8_t*)param)[0] = packet[4];
             ((uint8_t*)param)[1] = packet[5];
@@ -134,6 +129,17 @@ uint32_t kSerial_Check( uint8_t *packet, void *param, uint32_t *type, uint32_t *
     }
 
     return KS_ERROR;
+}
+
+/**
+ *  @brief  kSerial_GetBytesData
+ */
+void kSerial_GetBytesData( uint8_t *packet, void *pdata, uint32_t *nbyte )
+{
+    for (uint32_t i = 0; i < *nbyte; i++)
+    {
+        ((uint8_t*)pdata)[i] = packet[7 + i];
+    }
 }
 
 /**
@@ -182,14 +188,14 @@ uint32_t kSerial_Pack( uint8_t *packet, const void *param, const uint32_t type, 
 /**
  *  @brief  kSerial_Unpack
  */
-uint32_t kSerial_Unpack( uint8_t *packet, void *param, uint32_t *type, uint32_t *lens, void *pdata )
+uint32_t kSerial_Unpack( uint8_t *packet, void *param, uint32_t *type, uint32_t *nbyte, void *pdata )
 {
     uint32_t status;
 
-    status = kSerial_Check(packet, param, type, lens);
+    status = kSerial_Check(packet, param, type, nbyte);
     if (status == KS_OK)
     {
-        for (uint32_t i = 0; i < *lens; i++)
+        for (uint32_t i = 0; i < *nbyte; i++)
         {
             ((uint8_t*)pdata)[i] = packet[7 + i];
         }

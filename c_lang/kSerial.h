@@ -18,7 +18,7 @@
 #define __KSERIAL_H
 
 #ifdef __cplusplus
-  extern "C" {
+    extern "C" {
 #endif
 
 /* Includes --------------------------------------------------------------------------------*/
@@ -42,6 +42,14 @@
 
 /* Macro -----------------------------------------------------------------------------------*/
 /* Typedef ---------------------------------------------------------------------------------*/
+
+#ifndef NULL
+#ifdef __cplusplus
+#define NULL 0
+#else
+#define NULL ((void *)0)
+#endif
+#endif
 
 #ifndef KSSTATUS
 #define KSSTATUS
@@ -71,17 +79,28 @@
 #define KS_R4                           (0xF)  /* 4'b 1111 */
 #endif
 
+typedef struct
+{
+    uint8_t param[2];
+    uint32_t type;
+    uint32_t lens;
+    uint32_t bytes;
+    void *data;
+
+} kserial_t;
+
 /* Extern ----------------------------------------------------------------------------------*/
 /* Functions -------------------------------------------------------------------------------*/
 
 uint32_t    kSerial_GetTypeSize( uint32_t type );
 
-uint32_t    kSerial_CheckHeader( uint8_t *packet, void *param, uint32_t *type, uint32_t *lens );
-uint32_t    kSerial_CheckEnd( uint8_t *packet, const uint32_t lens );
-uint32_t    kSerial_Check( uint8_t *packet, void *param, uint32_t *type, uint32_t *lens );
+uint32_t    kSerial_CheckHeader( uint8_t *packet, void *param, uint32_t *type, uint32_t *nbyte );
+uint32_t    kSerial_CheckEnd( uint8_t *packet, const uint32_t nbyte );
+uint32_t    kSerial_Check( uint8_t *packet, void *param, uint32_t *type, uint32_t *nbyte );
+void        kSerial_GetBytesData( uint8_t *packet, void *pdata, uint32_t *nbyte );
 
 uint32_t    kSerial_Pack( uint8_t *packet, const void *param, const uint32_t type, const uint32_t lens, void *pdata );
-uint32_t    kSerial_Unpack( uint8_t *packet, void *param, uint32_t *type, uint32_t *lens, void *pdata );
+uint32_t    kSerial_Unpack( uint8_t *packet, void *param, uint32_t *type, uint32_t *nbyte, void *pdata );
 
 uint32_t    kSerial_SendPacket( void *param, void *sdata, const uint32_t lens, const uint32_t type );
 uint32_t    kSerial_RecvPacket( void *param, void *rdata, uint32_t *lens, uint32_t *type );
