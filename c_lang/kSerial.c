@@ -25,6 +25,7 @@
 /* Includes --------------------------------------------------------------------------------*/
 #include "kSerial.h"
 #if KSERIAL_SEND_ENABLE || KSERIAL_RECV_ENABLE
+#include <stdlib.h>
 #include <string.h>
 #include "serial.h"
 #endif
@@ -236,7 +237,7 @@ uint32_t kSerial_UnpackBuffer( const uint8_t *buffer, const uint32_t index, kser
             {
                 break;
             }
-            ksp[*count].data = malloc(ksp[*count].nbyte * sizeof(uint8_t));
+            ksp[*count].data = (void *)malloc(ksp[*count].nbyte * sizeof(uint8_t));
             kSerial_GetBytesData(&buffer[offset], ksp[*count].data, ksp[*count].nbyte);
             offset += ksp[*count].nbyte + 8;
             newindex = offset - 1;
