@@ -8,7 +8,7 @@
  * 
  *  @file    kSerial.c
  *  @author  KitSprout
- *  @date    Jan-2020
+ *  @date    Mar-2020
  *  @brief   kSerial packet format :
  *           byte 1   : header 'K' (75)       [HK]
  *           byte 2   : header 'S' (83)       [HS]
@@ -387,6 +387,7 @@ void kSerial_GetPacketData( kserial_packet_t *ksp, void *pdata, const uint32_t i
 
 /**
  *  @brief  kSerial_TwiWriteReg
+ *  Send packet ['K', 'S', 1, R1, slaveAddress(8-bit), regAddress, ck, regData, '\r']
  */
 uint32_t kSerial_TwiWriteReg( const uint8_t slaveAddr, const uint8_t regAddr, const uint8_t regData )
 {
@@ -410,6 +411,8 @@ uint32_t kSerial_TwiWriteReg( const uint8_t slaveAddr, const uint8_t regAddr, co
 
 /**
  *  @brief  kSerial_TwiReadReg
+ *  Send packet ['K', 'S', 1, R1, slaveAddress(8-bit)+1, regAddress, ck, 1, '\r']
+ *  Recv packet ['K', 'S', 1, R1, slaveAddress(8-bit)+1, regAddress, ck, regData, '\r']
  */
 uint32_t kSerial_TwiReadReg( const uint8_t slaveAddr, const uint8_t regAddr, uint8_t *regData )
 {
@@ -457,6 +460,8 @@ uint32_t kSerial_TwiReadReg( const uint8_t slaveAddr, const uint8_t regAddr, uin
 
 /**
  *  @brief  kSerial_TwiReadRegs
+ *  Send packet ['K', 'S',    1, R1, slaveAddress(8-bit)+1, regAddress, ck, lens, '\r']
+ *  Recv packet ['K', 'S', lens, R1, slaveAddress(8-bit)+1, regAddress, ck, regData ..., '\r']
  */
 uint32_t kSerial_TwiReadRegs( const uint8_t slaveAddr, const uint8_t regAddr, uint8_t *regData, const uint8_t lens )
 {
@@ -503,6 +508,8 @@ uint32_t kSerial_TwiReadRegs( const uint8_t slaveAddr, const uint8_t regAddr, ui
 
 /**
  *  @brief  kSerial_TwiCheck
+ *  Send packet ['K', 'S', 1, R1, 1, 0, ck,       1, '\r']
+ *  Recv packet ['K', 'S', 1, R1, 1, 0, ck, regData, '\r']
  */
 uint32_t kSerial_TwiCheck( void )
 {
@@ -520,6 +527,8 @@ uint32_t kSerial_TwiCheck( void )
 
 /**
  *  @brief  kSerial_TwiScanDevice
+ *  Send packet ['K', 'S',    0, R2, 0xAB, 0, ck, '\r']
+ *  Recv packet ['K', 'S', lens, R2, 0xAB, 0, ck, address ..., '\r']
  */
 uint32_t kSerial_TwiScanDevice( uint8_t *slaveAddr )
 {
@@ -568,6 +577,8 @@ uint32_t kSerial_TwiScanDevice( uint8_t *slaveAddr )
 
 /**
  *  @brief  kSerial_TwiScanRegister
+ *  Send packet ['K', 'S',   0, R2, 0xCB, slaveAddress, ck, '\r']
+ *  Recv packet ['K', 'S', 256, R2, 0xCB, slaveAddress, ck, address ..., '\r']
  */
 uint32_t kSerial_TwiScanRegister( const uint8_t slaveAddr, uint8_t reg[256] )
 {
