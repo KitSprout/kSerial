@@ -1,5 +1,4 @@
 #include <jni.h>
-//#include <string>
 
 #include "kSerial.h"
 
@@ -12,12 +11,33 @@ extern "C"
 {
 
 #define MAX_KSERIAL_PACKET_LENS     (1024)
-kserial_packet_t kspacket[MAX_KSERIAL_PACKET_LENS] = {0};
+uint8_t kspackbuf[1032] = {0};
 uint32_t kspacketcnt = 0;
+kserial_packet_t kspacket[MAX_KSERIAL_PACKET_LENS] = {0};
+
+
+// private static native byte[] pack(int[] param, int type, int lens, double[] data);
+// uint32_t kSerial_Pack( uint8_t *packet, const void *param, const uint32_t type, const uint32_t lens, const void *pdata )
+JNIEXPORT jbyteArray
+Java_com_kitsprout_ks_KSerial_pack(
+        JNIEnv* env, jclass clazz, jintArray jparam, jint jtype, jint jlens, jdoubleArray jdata) {
+    uint8_t param[2] = {0};
+    uint32_t type = (uint32_t)jtype;
+    uint32_t lens = (uint32_t)jlens;
+    uint32_t packetTotalBytes;
+
+    uint32_t data[1024];
+    // ....
+    packetTotalBytes = kSerial_Pack(kspackbuf, param, type, lens, data);
+    jbyteArray jpacket = env->NewByteArray(packetTotalBytes);
+    env->SetByteArrayRegion(jpacket, 0, packetTotalBytes, (jbyte*)kspackbuf);
+
+    return jpacket;
+}
 
 JNIEXPORT jint
-Java_com_kitsprout_kSerial_kSerial_unpackBuffer(
-        JNIEnv* env, jobject /* this */, jbyteArray jbuf, jint jlens) {
+Java_com_kitsprout_ks_KSerial_unpackBuffer(
+        JNIEnv* env, jclass clazz, jbyteArray jbuf, jint jlens) {
     const uint32_t pkbufsize = (uint32_t) jlens;
     uint8_t *pkbuf = (uint8_t *)env->GetByteArrayElements(jbuf, nullptr);
     uint32_t newindex = kSerial_UnpackBuffer(pkbuf, pkbufsize, kspacket, &kspacketcnt);
@@ -25,27 +45,27 @@ Java_com_kitsprout_kSerial_kSerial_unpackBuffer(
 }
 
 JNIEXPORT jint
-Java_com_kitsprout_kSerial_kSerial_getPacketCount(
-        JNIEnv* env, jobject /* this */) {
+Java_com_kitsprout_ks_KSerial_getPacketCount(
+        JNIEnv* env, jclass clazz) {
     return kspacketcnt;
 }
 
 JNIEXPORT jint
-Java_com_kitsprout_kSerial_kSerial_getPacketType(
-        JNIEnv* env, jobject /* this */, jint index) {
+Java_com_kitsprout_ks_KSerial_getPacketType(
+        JNIEnv* env, jclass clazz, jint index) {
     return kspacket[index].type;
 }
 
 JNIEXPORT jint
-Java_com_kitsprout_kSerial_kSerial_getPacketBytes(
-        JNIEnv* env, jobject /* this */, jint index) {
+Java_com_kitsprout_ks_KSerial_getPacketBytes(
+        JNIEnv* env, jclass clazz, jint index) {
 
     return kspacket[index].nbyte;
 }
 
 JNIEXPORT jintArray
-Java_com_kitsprout_kSerial_kSerial_getPacketParam(
-        JNIEnv* env, jobject /* this */, jint index) {
+Java_com_kitsprout_ks_KSerial_getPacketParam(
+        JNIEnv* env, jclass clazz, jint index) {
     jintArray jparam = env->NewIntArray(2);
     int param[2];
     param[0] = kspacket[index].param[0];
@@ -55,8 +75,8 @@ Java_com_kitsprout_kSerial_kSerial_getPacketParam(
 }
 
 JNIEXPORT jdoubleArray
-Java_com_kitsprout_kSerial_kSerial_getPacketData(
-        JNIEnv* env, jobject /* this */, jint index) {
+Java_com_kitsprout_ks_KSerial_getPacketData(
+        JNIEnv* env, jclass clazz, jint index) {
 
     jdoubleArray jdata = env->NewDoubleArray(kspacket[index].lens);
     double data[kspacket[index].lens];

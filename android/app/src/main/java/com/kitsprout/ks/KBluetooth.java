@@ -1,4 +1,4 @@
-package com.kitsprout.bluetooth;
+package com.kitsprout.ks;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -16,12 +16,10 @@ import java.io.OutputStream;
 import java.util.Set;
 import java.util.UUID;
 
-public class kBluetooth {
+public class KBluetooth {
 
     private static final String TAG = "KSBLE";
     private static final UUID btUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
-
-    public static BluetoothDevice device;
 
     private static boolean connectStatus;
     private static BluetoothAdapter adapter;
@@ -29,6 +27,8 @@ public class kBluetooth {
     private static BluetoothSocket socket;
     private static InputStream inputStream;
     private static OutputStream outputStream;
+
+    public static BluetoothDevice device;
 
     public static boolean startup(Context context) {
         connectStatus = false;

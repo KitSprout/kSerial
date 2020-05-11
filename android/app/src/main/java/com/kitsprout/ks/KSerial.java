@@ -1,16 +1,16 @@
-package com.kitsprout.kSerial;
+package com.kitsprout.ks;
 
 import android.util.Log;
 
 import java.util.ArrayList;
-//import com.kitsprout.kSerial.kPacket;
 
-public class kSerial {
+public class KSerial {
 
     // form JNI
     static {
         System.loadLibrary("libkserial");
     }
+    private static native byte[] pack(int[] param, int type, int lens, double[] data);
     private static native int unpackBuffer(byte[] buf, int lens);
     private static native int getPacketCount();
     private static native int getPacketType(int index);
@@ -30,10 +30,8 @@ public class kSerial {
 
     // maximum record buffer size
     private int saveMaxBufferSize;
-    private ArrayList<kPacket> pklist;
+    private ArrayList<KPacket> pklist;
 
-    // receive packet
-    private kPacket[] pk;
     private double packetTimeUnit;
     private long packetTotalCount;
     private int parameter16;
@@ -52,22 +50,44 @@ public class kSerial {
     private boolean enableLostRate;
     private long lostCount;
 
-    public static class kPacket {
+    public static class KPacket {
         public int type;
         public int nbyte;
         public int[] param;
         public double[] data;
     }
 
-    public kSerial(int saveMaxBufferSize, double timeUnit) {
+    public KSerial(int saveMaxBufferSize, double timeUnit) {
         this.saveMaxBufferSize = saveMaxBufferSize;
-        this.pklist = new ArrayList<kPacket>();
+        this.pklist = new ArrayList<KPacket>();
         this.packetTotalCount = 0;
         this.timestampInited = false;
         this.firstTimestamp = new long[2];
         this.lastTimestamp = new long[2];
         this.resetPacketBuffer();
         this.setTimeUnit(timeUnit);
+    }
+
+    private static final String[] typeNum2str = {
+            "uint8",  "uint16", "uint32", "uint64",
+            "int8",   "int16",  "int32",  "int64",
+            "R0",     "half",   "float",  "double",
+            "R1",     "R2",     "R3",     "R4",
+    };
+    public static String typeConvert(int type) {
+        if ((type < 0) || (type > 15)) {
+            return "";
+        }
+        return typeNum2str[type];
+    }
+    public static int typeConvert(String type) {
+        return 0;
+    }
+    private static int typeSize(int type) {
+        return 0;
+    }
+    private static int typeSize(String type) {
+        return 0;
     }
 
     private void resetPacketBuffer() {
@@ -87,35 +107,18 @@ public class kSerial {
         }
     }
 
-    private kPacket runPacketProcess(int index) {
-        // get packet info and data form jni
-        kPacket packet = new kPacket();
-        packet.type  = kSerial.getPacketType(index);
-        packet.nbyte = kSerial.getPacketBytes(index);
-        packet.param = kSerial.getPacketParam(index);
-        packet.data  = kSerial.getPacketData(index);
-        // record packet
-        if (saveMaxBufferSize > 0) {
-            if (pklist.size() >= saveMaxBufferSize) {
-                pklist.remove(0); // remove oldest packet
-            }
-            pklist.add(packet);
-        }
-        return packet;
-    }
-
-    private long getPacketTimestamp(kPacket packet) {
+    private long getPacketTimestamp(KPacket packet) {
         return (long)(packet.data[0] * 1000 + packet.data[1]);
     }
 
-    public int getPacketParameterU16(kPacket packet) {
+    public int getPacketParameterU16(KPacket packet) {
         parameter16 = (packet.param[1] & 0x0000FFFF) * 256 | packet.param[0];
         return parameter16;
     }
 
-    private long getPacketLost(kPacket[] packets) {
+    private long getPacketLost(KPacket[] packets) {
         long count = 0;
-        for (kPacket packet : packets) {
+        for (KPacket packet : packets) {
             int lastCount = parameter16;
             int differenceCount = getPacketParameterU16(packet) - lastCount;
             if ((differenceCount != 1) && (differenceCount != -65535)) {
@@ -125,7 +128,7 @@ public class kSerial {
         return count;
     }
 
-    private double getPacketFrequency(kPacket lastPacket, int count) {
+    private double getPacketFrequency(KPacket lastPacket, int count) {
         if (!timestampInited) {
             timestampInited = true;
             firstTimestamp[0] = System.currentTimeMillis();
@@ -157,17 +160,32 @@ public class kSerial {
         return frequency;
     }
 
-    public kPacket[] getPacket(byte[] receiveBytes) {
+    public KPacket[] getPacket(byte[] receiveBytes) {
         // update packet buffer
         System.arraycopy(receiveBytes, 0, packetBuffer, packetBufferIndex, receiveBytes.length);
         packetBufferIndex += receiveBytes.length;
         // unpack receive buffer
-        int newPacketBufferIndex = kSerial.unpackBuffer(packetBuffer, packetBufferIndex);
-        int packetCount = kSerial.getPacketCount();
-        pk = new kPacket[packetCount];
+        int newPacketBufferIndex = unpackBuffer(packetBuffer, packetBufferIndex);
+        int packetCount = getPacketCount();
+        // receive packet
+        KPacket[] pk = new KPacket[packetCount];
         if (packetCount > 0) {
             for (int i = 0; i < packetCount; i++) {
-                pk[i] = runPacketProcess(i);
+//                pk[i] = runPacketProcess(i);
+                // get packet info and data form jni
+                KPacket packet = new KPacket();
+                packet.type  = getPacketType(i);
+                packet.nbyte = getPacketBytes(i);
+                packet.param = getPacketParam(i);
+                packet.data  = getPacketData(i);
+                // record packet
+                if (saveMaxBufferSize > 0) {
+                    if (pklist.size() >= saveMaxBufferSize) {
+                        pklist.remove(0); // remove oldest packet
+                    }
+                    pklist.add(packet);
+                }
+                pk[i] = packet;
             }
             // get frequency
             frequency = getPacketFrequency(pk[packetCount-1], packetCount);
@@ -208,11 +226,6 @@ public class kSerial {
 
     public long getLostRate() {
         return lostCount;
-//        if (enablePacketTime) {
-//            return (lastTimestamp[1] - firstTimestamp[1]) * packetTimeUnit;
-//        } else {
-//            return (lastTimestamp[0] - firstTimestamp[0]) * 0.001;
-//        }
     }
 
     public long getPacketTotalCount() {
@@ -223,7 +236,7 @@ public class kSerial {
         return pklist.size();
     }
 
-    public ArrayList<kPacket> getSavePacketBuffer() {
+    public ArrayList<KPacket> getSavePacketBuffer() {
         return pklist;
     }
 

@@ -15,17 +15,17 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.kitsprout.bluetooth.kBluetooth;
-import com.kitsprout.kSerial.kSerial;
-import com.kitsprout.kSerial.kSerial.kPacket;
+import com.kitsprout.ks.KBluetooth;
+import com.kitsprout.ks.KSerial;
+import com.kitsprout.ks.KSerial.KPacket;
 
 public class MainActivity extends AppCompatActivity {
 
     private Menu bluetoothDeviceMenu = null;
 
-    private EditText bluetoothSendText;
     private TextView bluetoothRecvText;
     private TextView bluetoothRecvBufferText;
+    private EditText bluetoothSendText;
     private Button bluetoothSendButton;
     private Button bluetoothConnectStatus;
 
@@ -35,15 +35,15 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         // layout
-        bluetoothSendText = findViewById(R.id.editTextBluetoothSend);
         bluetoothRecvText = findViewById(R.id.textViewBluetoothRecv);
         bluetoothRecvBufferText = findViewById(R.id.textViewBluetoothRecvBuffer);
+        bluetoothSendText = findViewById(R.id.editTextBluetoothSend);
         bluetoothSendButton = findViewById(R.id.buttonBluetoothSend);
         bluetoothConnectStatus = findViewById(R.id.buttonBluetoothConnectStatus);
         changeConnectStatusColor(false);
 
         // bluetooth startup
-        if (!kBluetooth.startup(this)) {
+        if (!KBluetooth.startup(this)) {
             Log.e("KS_DBG", "bluetoothStartup ... error");
         }
 
@@ -59,23 +59,23 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
-        bluetoothDeviceMenu = kBluetooth.updateDeviceMenu(menu);
+        bluetoothDeviceMenu = KBluetooth.updateDeviceMenu(menu);
         return super.onPrepareOptionsMenu(bluetoothDeviceMenu);
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
-        int state = kBluetooth.select(id);
-        if (state == kBluetooth.DISCONNECTED) {
+        int state = KBluetooth.select(id);
+        if (state == KBluetooth.DISCONNECTED) {
             bluetoothRecvBufferText.setText("");
             changeConnectStatusColor(false);
             Toast.makeText(this, "DISCONNECT SUCCESS", Toast.LENGTH_SHORT).show();
-        } else if (state == kBluetooth.DISCONNECT_FAILED) {
+        } else if (state == KBluetooth.DISCONNECT_FAILED) {
             Toast.makeText(this, "DISCONNECT FAILED", Toast.LENGTH_SHORT).show();
-        } else if (state == kBluetooth.CONNECT_FAILED) {
+        } else if (state == KBluetooth.CONNECT_FAILED) {
             Toast.makeText(this, "CONNECT FAILED", Toast.LENGTH_SHORT).show();
-        } else if (state == kBluetooth.CONNECTED) {
+        } else if (state == KBluetooth.CONNECTED) {
             bluetoothBeginListening();
             Toast.makeText(this, "CONNECT SUCCESS", Toast.LENGTH_SHORT).show();
         }
@@ -93,32 +93,32 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void OnClickBluetoothSendData(View view) {
-        if (kBluetooth.isConnected()) {
-            int lens = kBluetooth.send(bluetoothSendText.getText().toString().getBytes());
+        if (KBluetooth.isConnected()) {
+            int lens = KBluetooth.send(bluetoothSendText.getText().toString().getBytes());
             Log.d("KS_DBG", String.format("OnClickBluetoothSendData() ... lens = %d", lens));
         } else {
             Log.d("KS_DBG", "OnClickBluetoothSendData() ... without connect");
         }
     }
 
-    kSerial ks;
+    KSerial ks;
     Thread bluetoothRecvThread;
     void bluetoothBeginListening() {
         Log.d("KS_DBG", "bluetoothBeginListening()");
         final Handler handler = new Handler();
-        ks = new kSerial(32*1024, 0.001);
+        ks = new KSerial(32*1024, 0.001);
         bluetoothRecvThread = new Thread(new Runnable() {
             public void run() {
                 changeConnectStatusColor(true);
-                while (!Thread.currentThread().isInterrupted() && kBluetooth.isConnected()) {
-                    byte[] receiveBytes = kBluetooth.receive();
+                while (!Thread.currentThread().isInterrupted() && KBluetooth.isConnected()) {
+                    byte[] receiveBytes = KBluetooth.receive();
                     if (receiveBytes != null) {
                         int bytesAvailable = receiveBytes.length;
                         if (bytesAvailable > 0) {
-                            kPacket[] pk = ks.getPacket(receiveBytes);
-                            for (kSerial.kPacket kPacket : pk) {
+                            KPacket[] pk = ks.getPacket(receiveBytes);
+                            for (KSerial.KPacket KPacket : pk) {
                                 Log.d("KSERIAL", String.format("%6d,%.0f,%d,%d",
-                                        ks.getPacketParameterU16(kPacket), ks.getFrequency(0), bytesAvailable, pk.length));
+                                        ks.getPacketParameterU16(KPacket), ks.getFrequency(0), bytesAvailable, pk.length));
                             }
                             // show information
                             final String recvBufferString = String.format("%.0fHz\n%.1fs\n%3d,%d", ks.getFrequency(0), ks.getTimes(), bytesAvailable, pk.length);
@@ -131,7 +131,7 @@ public class MainActivity extends AppCompatActivity {
                             });
                         }
                     } else {
-                        kBluetooth.disconnect();
+                        KBluetooth.disconnect();
                         break;
                     }
                 }
