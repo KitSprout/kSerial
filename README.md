@@ -8,8 +8,8 @@
 | :--: | ------------------------------ |
 |  HK  | header 'K' (75)                |
 |  HS  | header 'S' (83)                |
-|  TP  | data type (4-bit)              |
-|  LN  | data length (12-bit, 0~4095)   |
+|  TP  | data type (4-bit)              |
+|  LN  | data length (12-bit, 0~4095)   |
 |  P1  | parameter 1                    |
 |  P2  | parameter 2                    |
 |  CK  | checksum                       |
