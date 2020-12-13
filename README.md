@@ -2,20 +2,20 @@
 
 | byte 1 | byte 2 | byte 3 | byte 4 | byte 5 | byte 6 | byte 7 |  ...   | byte L + 8 |
 | :----: | :----: | :----: | :----: | :----: | :----: | :----: | :----: | :--------: |
-|   HK   |   HS   |   L    |   T    |   P1   |   P2   |   CK   |   DN   |     ER     |
+|   HK   |   HS   |   TP   |   LN   |   P1   |   P2   |   CK   |   DN   |     ER     |
 
-| name | information |
-| :--: | ----------- |
-|  HK  | header 'K' (75) |
-|  HS  | header 'S' (83) |
-|  L   | data length (12-bit, 0~4095) |
-|  T   | data type (4-bit) |
-|  P1  | parameter 1 |
-|  P2  | parameter 2 |
-|  CK  | checksum |
-|  ... | ... |
-|  DN  | data |
-|  ER  | finish '\r' (13) |
+| name | information                    |
+| :--: | ------------------------------ |
+|  HK  | header 'K' (75)                |
+|  HS  | header 'S' (83)                |
+|  TP  | data type (4-bit)              |
+|  LN  | data length (12-bit, 0~4095)   |
+|  P1  | parameter 1                    |
+|  P2  | parameter 2                    |
+|  CK  | checksum                       |
+|  ... | ...                            |
+|  DN  | data                           |
+|  ER  | finish '\r' (13)               |
 
 |   type   |   binrary    |
 | :------: | ------------ |

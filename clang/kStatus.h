@@ -8,7 +8,6 @@
  * 
  *  @file    kStatus.h
  *  @author  KitSprout
- *  @date    Mar-2020
  *  @brief   
  * 
  */
@@ -18,7 +17,7 @@
 #define __KSTATUS_H
 
 #ifdef __cplusplus
-    extern "C" {
+extern "C" {
 #endif
 
 /* Includes --------------------------------------------------------------------------------*/
@@ -38,6 +37,13 @@
 #define KS_ERROR                        (1U)
 #define KS_BUSY                         (2U)
 #define KS_TIMEOUT                      (3U)
+
+#define KS_CLOSE                        (0U)
+#define KS_OPEN                         (1U)
+
+#define KS_NULL                         (0U)
+#define KS_FALSE                        (0U)
+#define KS_TRUE                         (1U)
 #endif
 
 #ifndef KSUNIT
