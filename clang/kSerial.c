@@ -42,7 +42,19 @@ uint8_t ksSendBuf[KS_MAX_SEND_BUFFER_SIZE] = {0};
 uint8_t ksRecvBuf[KS_MAX_RECV_BUFFER_SIZE] = {0};
 #endif
 
-const uint32_t KS_TYPE_SIZE[16] =
+#if KSERIAL_RECV_TREAD_ENABLE
+uint8_t ksPacketBuf[KSERIAL_RECV_PACKET_BUFFER_LENS] = {0};
+kserial_packet_t ksPacket[KSERIAL_MAX_PACKET_LENS] = {0};
+kserial_t ks =
+{
+    .size = KSERIAL_RECV_PACKET_BUFFER_LENS,
+    .count = 0,
+    .buffer = ksPacketBuf,
+    .packet = ksPacket
+};
+#endif
+
+const uint32_t KS_TYPE_SIZE[KSERIAL_TYPE_LENS] =
 {
     1, 2, 4, 8,
     1, 2, 4, 8,
@@ -50,12 +62,20 @@ const uint32_t KS_TYPE_SIZE[16] =
     0, 0, 0, 0
 };
 
-const char KS_TYPE_STRING[16][4] =
+const char KS_TYPE_STRING[KSERIAL_TYPE_LENS][4] =
 {
     "U8", "U16", "U32", "U64",
     "I8", "I16", "I32", "I64",
     "R0", "F16", "F32", "F64",
     "R1", "R2",  "R3",  "R4",
+};
+
+const char KS_TYPE_FORMATE[KSERIAL_TYPE_LENS][8] =
+{
+    "%4d", "%6d", "%11d", "%20d",
+    "%4d", "%6d", "%11d", "%20d",
+    "",    "%.6f", "%.6f", "%.6f",
+    "", "", "", ""
 };
 
 /* Prototypes ------------------------------------------------------------------------------*/
@@ -380,6 +400,23 @@ void kSerial_ReadFlush( kserial_t *ks )
 }
 
 /**
+ *  @brief  kSerial_GetFrequence
+ */
+// float kSerial_GetFrequence( uint32_t lens, uint32_t time, uint32_t count )
+// {
+//     // static uint64_t kslensLast = 0;
+//     // static uint64_t ksTimeLast = 0;
+//     static float frequence = 0;
+//     // if ((time - ksTimeLast) >= count)
+//     // {
+//     //     frequence = ((float)lens - kslensLast) / (time - ksTimeLast) * 1000.0f;
+//     //     kslensLast = lens;
+//     //     ksTimeLast = time;
+//     // }
+//     return frequence;
+// }
+
+/**
  *  @brief  kSerial_GetPacketData
  */
 void kSerial_GetPacketData( kserial_packet_t *ksp, void *pdata, uint32_t index )
@@ -389,6 +426,35 @@ void kSerial_GetPacketData( kserial_packet_t *ksp, void *pdata, uint32_t index )
         memcpy(pdata, ksp[index].data, ksp[index].nbyte);
     }
     free(ksp[index].data);
+}
+
+/**
+ *  @brief  kSerial_ContinuousRead
+ */
+uint32_t kSerial_ContinuousRead( kserial_packet_t *ksp, uint32_t *index, uint32_t *count, uint32_t *total )
+{
+#if KSERIAL_RECV_TREAD_ENABLE
+    if ((*count == 0) || (*index >= *count))
+    {
+        *count = kSerial_Read(&ks);
+        if (*count == 0)
+        {
+            return KS_ERROR;
+        }
+        *index = 0;
+    }
+    kSerial_GetPacketData(ks.packet, ksp->data, *index);
+    ksp->param[0] = ks.packet[*index].param[0];
+    ksp->param[1] = ks.packet[*index].param[1];
+    ksp->type = ks.packet[*index].type;
+    ksp->lens = ks.packet[*index].lens;
+    ksp->nbyte = ks.packet[*index].nbyte;
+    (*total)++;
+    (*index)++;
+    return KS_OK;
+#else
+    return KS_ERROR;
+#endif
 }
 
 /**

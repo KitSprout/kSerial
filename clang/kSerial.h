@@ -27,21 +27,33 @@ extern "C" {
 /* Define ----------------------------------------------------------------------------------*/
 
 #ifndef KSERIAL_SEND_ENABLE
-#define KSERIAL_SEND_ENABLE             (0U)
+#define KSERIAL_SEND_ENABLE                 (1U)
 #ifndef KS_MAX_SEND_BUFFER_SIZE
-#define KS_MAX_SEND_BUFFER_SIZE         (4096 + 32)
+#define KS_MAX_SEND_BUFFER_SIZE             (4096 + 32)
 #endif
 #endif
 
 #ifndef KSERIAL_RECV_ENABLE
-#define KSERIAL_RECV_ENABLE             (0U)
+#define KSERIAL_RECV_ENABLE                 (1U)
 #ifndef KS_MAX_RECV_BUFFER_SIZE
-#define KS_MAX_RECV_BUFFER_SIZE         (4096 + 1024 + 32)
+#define KS_MAX_RECV_BUFFER_SIZE             (4096 + 1024 + 32)
 #endif
 #endif
 
+#ifndef KSERIAL_RECV_TREAD_ENABLE
+#define KSERIAL_RECV_TREAD_ENABLE           (1U)
+#define KSERIAL_MAX_PACKET_LENS             (4096)
+#define KSERIAL_RECV_PACKET_BUFFER_LENS     (64 * 1024)
+#endif
+
 #ifndef KSERIAL_CMD_ENABLE
-#define KSERIAL_CMD_ENABLE              (0U)
+#define KSERIAL_CMD_ENABLE                  (1U)
+#endif
+
+#if KSERIAL_RECV_TREAD_ENABLE
+#if !(KSERIAL_RECV_ENABLE)
+#error "Need to enable recv"
+#endif
 #endif
 #if KSERIAL_CMD_ENABLE
 #if !(KSERIAL_SEND_ENABLE && KSERIAL_RECV_ENABLE)
@@ -49,21 +61,23 @@ extern "C" {
 #endif
 #endif
 
+#define KSERIAL_TYPE_LENS                   (16)
+
 /* Macro -----------------------------------------------------------------------------------*/
 
 #if KSERIAL_SEND_ENABLE
 #ifndef kSerial_Send
-#define kSerial_Send(__DATA, __LENS)    Serial_SendData(&s, __DATA, __LENS)
-#define kSerial_SendByte(__DATA)        Serial_SendByte(&s, __DATA)
+#define kSerial_Send(__DATA, __LENS)        Serial_SendData(&s, __DATA, __LENS)
+#define kSerial_SendByte(__DATA)            Serial_SendByte(&s, __DATA)
 #endif
 #endif
 #if KSERIAL_RECV_ENABLE
-#define kSerial_Recv(__DATA, __LENS)    Serial_RecvData(&s, __DATA, __LENS)
-#define kSerial_RecvByte()              Serial_RecvByte(&s)
-#define kSerial_RecvFlush()             Serial_Flush(&s)
+#define kSerial_Recv(__DATA, __LENS)        Serial_RecvData(&s, __DATA, __LENS)
+#define kSerial_RecvByte()                  Serial_RecvByte(&s)
+#define kSerial_RecvFlush()                 Serial_Flush(&s)
 #endif
 #if (KSERIAL_SEND_ENABLE || KSERIAL_RECV_ENABLE)
-#define kSerial_Delay(__MS)             Serial_Delay(__MS)
+#define kSerial_Delay(__MS)                 Serial_Delay(__MS)
 #endif
 
 /* Typedef ---------------------------------------------------------------------------------*/
@@ -102,10 +116,13 @@ typedef enum
 
 } kserial_r2_command_t;
 
+typedef void (*pKserialCallback)( kserial_packet_t *pk, uint8_t *data, uint32_t count, uint32_t total );
+
 /* Extern ----------------------------------------------------------------------------------*/
 
-extern const uint32_t KS_TYPE_SIZE[16];
-extern const char KS_TYPE_STRING[16][4];
+extern const uint32_t KS_TYPE_SIZE[KSERIAL_TYPE_LENS];
+extern const char KS_TYPE_STRING[KSERIAL_TYPE_LENS][4];
+extern const char KS_TYPE_FORMATE[KSERIAL_TYPE_LENS][8];
 
 /* Functions -------------------------------------------------------------------------------*/
 
@@ -126,6 +143,8 @@ uint32_t    kSerial_RecvPacket( uint8_t input, void *param, void *pdata, uint32_
 uint32_t    kSerial_Read( kserial_t *ks );
 void        kSerial_ReadFlush( kserial_t *ks );
 void        kSerial_GetPacketData( kserial_packet_t *ksp, void *pdata, uint32_t index );
+uint32_t    kSerial_ContinuousRead( kserial_packet_t *ksp, uint32_t *index, uint32_t *count, uint32_t *total );
+
 uint32_t    kSerial_SendCommand( uint32_t type, uint32_t p1, uint32_t p2, uint32_t ack[3] );
 uint32_t    kSerial_DeviceCheck( uint32_t *id );
 
