@@ -103,9 +103,23 @@ typedef struct
 
 } kserial_t;
 
+typedef struct
+{
+    uint32_t type;
+    uint32_t nbyte;
+    uint8_t param[2];
+    uint8_t data[8];
+
+} kserial_ack_t;
+
 typedef enum
 {
-    KSCMD_R1_DEVICE_CHECK   = 0xD0
+    KSCMD_R0_NULL               = 0x00,
+    KSCMD_R0_DEVICE_ID          = 0xD0,
+    KSCMD_R0_DEVICE_BAUDRATE    = 0xD1,
+    KSCMD_R0_DEVICE_RATE        = 0xD2,
+    KSCMD_R0_DEVICE_MDOE        = 0xD3,
+    KSCMD_R0_DEVICE_GET         = 0xE3
 
 } kserial_r0_command_t;
 
@@ -145,7 +159,7 @@ void        kSerial_ReadFlush( kserial_t *ks );
 void        kSerial_GetPacketData( kserial_packet_t *ksp, void *pdata, uint32_t index );
 uint32_t    kSerial_ContinuousRead( kserial_packet_t *ksp, uint32_t *index, uint32_t *count, uint32_t *total );
 
-uint32_t    kSerial_SendCommand( uint32_t type, uint32_t p1, uint32_t p2, uint32_t ack[3] );
+uint32_t    kSerial_SendCommand( uint32_t type, uint32_t p1, uint32_t p2, kserial_ack_t *ack );
 uint32_t    kSerial_DeviceCheck( uint32_t *id );
 
 uint32_t    kSerial_TwiReadRegs( uint8_t slaveAddr, uint8_t regAddr, uint8_t *regData, uint8_t lens );

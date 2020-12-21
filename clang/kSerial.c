@@ -462,7 +462,7 @@ uint32_t kSerial_ContinuousRead( kserial_packet_t *ksp, uint32_t *index, uint32_
  *  Send packet ['K', 'S', type, 0, param1, param2, ck, '\r']
  *  Recv packet ['K', 'S', type, 0, param1, param2, ck, '\r']
  */
-uint32_t kSerial_SendCommand( uint32_t type, uint32_t p1, uint32_t p2, uint32_t ack[3] )
+uint32_t kSerial_SendCommand( uint32_t type, uint32_t p1, uint32_t p2, kserial_ack_t *ack )
 {
 #if KSERIAL_SEND_ENABLE
     uint8_t param[2] = {p1, p2};
@@ -491,9 +491,7 @@ uint32_t kSerial_SendCommand( uint32_t type, uint32_t p1, uint32_t p2, uint32_t 
         kSerial_Delay(50);
         nbytes = kSerial_Recv(ksRecvBuf, KS_MAX_RECV_BUFFER_SIZE);
 #endif
-        status = kSerial_Unpack(ksRecvBuf, param, ack, &nbytes, ksSendBuf);
-        ack[1] = param[0];
-        ack[2] = param[1];
+        status = kSerial_Unpack(ksRecvBuf, ack->param, &ack->type, &ack->nbyte, ack->data);
     }
 #endif
     return status;
@@ -510,18 +508,18 @@ uint32_t kSerial_SendCommand( uint32_t type, uint32_t p1, uint32_t p2, uint32_t 
 uint32_t kSerial_DeviceCheck( uint32_t *id )
 {
 #if KSERIAL_CMD_ENABLE
-    uint32_t ack[3] = {0};
-    if (kSerial_SendCommand(KS_R0, KSCMD_R1_DEVICE_CHECK, 0x00, ack) != KS_OK)
+    kserial_ack_t ack = {0};
+    if (kSerial_SendCommand(KS_R0, KSCMD_R0_DEVICE_ID, 0x00, &ack) != KS_OK)
     {
         return KS_ERROR;
     }
-    if (ack[0] != KS_R0)
+    if (ack.type != KS_R0)
     {
         return KS_ERROR;
     }
     if (id != NULL)
     {
-        *id = (ack[2] << 8) | ack[1];
+        *id = (uint32_t)*(uint16_t*)ack.param;
     }
     return KS_OK;
 #else
