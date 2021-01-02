@@ -8,12 +8,11 @@
 %  
 %  @file    kSerial.m
 %  @author  KitSprout
-%  @date    Dec-2019
 %  @brief   kSerial packet format :
 %           byte 1   : header 'K' (75)       [HK]
 %           byte 2   : header 'S' (83)       [HS]
-%           byte 3   : data bytes (12-bit)   [L ]
-%           byte 4   : data type             [T ]
+%           byte 3   : data type (4-bit)     [TP]
+%           byte 4   : data bytes (12-bit)   [LN]
 %           byte 5   : parameter 1           [P1]
 %           byte 6   : parameter 2           [P2]
 %           byte 7   : checksum              [CK]
@@ -190,25 +189,25 @@ methods
         end
     end
 
-    % packet = s.pack();                   ->  R0 (8-bit)                    -> [75, 83, 0, 8, 0, 0, 8, 13]
-    % packet = s.pack(param);              ->  only send parameter (8-bit)   -> [75, 83, 0, 8, P1, P2, CK, 13]
-    % packet = s.pack(param, type);        ->  user define data type (8-bit) -> [75, 83, L, T, P1, P2, CK, 13]
-    % packet = s.pack(param, data);        ->  automatic detect data type    -> [75, 83, L, T, P1, P2, Dn, CK, 13]
-    % packet = s.pack(param, data, type);  ->  user define data type         -> [75, 83, L, T, P1, P2, Dn, CK, 13]
+    % packet = s.pack();                   ->  R0 (8-bit)                    -> [75, 83,  0,  8,  0,  0,  8, 13]
+    % packet = s.pack(param);              ->  only send parameter (8-bit)   -> [75, 83,  0,  8, P1, P2, CK, 13]
+    % packet = s.pack(param, type);        ->  user define data type (8-bit) -> [75, 83, TP, LN, P1, P2, CK, 13]
+    % packet = s.pack(param, data);        ->  automatic detect data type    -> [75, 83, TP, LN, P1, P2, Dn, CK, 13]
+    % packet = s.pack(param, data, type);  ->  user define data type         -> [75, 83, TP, LN, P1, P2, Dn, CK, 13]
     function varargout = pack( s, varargin )
         switch nargin
             case 1
                 % packet = s.pack();
                 packetType = 'R0';
                 type = s.typeConv(packetType);
-                packet = uint8(['KS', 0, type, 0, 0, 0, 13]);
+                packet = uint8(['KS', type * 16, 0, 0, 0, 0, 13]);
                 packet(7) = s.getChecksum(packet(3:6)');
             case 2
                 % packet = s.pack(param);
                 param = varargin{1};
                 packetType = 'R0';
                 type = s.typeConv(packetType);
-                packet = uint8(['KS', 0, type, param(1), param(2), 0, 13]);
+                packet = uint8(['KS', type * 16, 0, param(1), param(2), 0, 13]);
                 packet(7) = s.getChecksum(packet(3:6)');
             case 3
                 % packet = s.pack(param, type);
@@ -217,14 +216,14 @@ methods
                 if ischar(varargin{2})
                     packetType = varargin{2};
                     type = s.typeConv(packetType);
-                    packet = uint8(['KS', 0, type, param(1), param(2), 0, 13]);
+                    packet = uint8(['KS', type * 16, 0, param(1), param(2), 0, 13]);
                     packet(7) = s.getChecksum(packet(3:6)');
                 else
                     data = varargin{2};
                     packetType = class(data);
                     [lens, type, data] = s.getTypesAndLens(data, packetType);
                     convdata = s.getData2Bytes(data, packetType);
-                    packet = uint8(['KS', lens, type, param(1), param(2), 0, convdata, 13]);
+                    packet = uint8(['KS', type, lens, param(1), param(2), 0, convdata, 13]);
                     packet(7) = s.getChecksum(packet(3:6)');
                 end
             case 4
@@ -234,7 +233,7 @@ methods
                 packetType = varargin{3};
                 [lens, type, data] = s.getTypesAndLens(data, packetType);
                 convdata = s.getData2Bytes(data, packetType);
-                packet = uint8(['KS', lens, type, param(1), param(2), 0, convdata, 13]);
+                packet = uint8(['KS', type, lens, param(1), param(2), 0, convdata, 13]);
                 packet(7) = s.getChecksum(packet(3:6)');
         end
 
@@ -264,8 +263,8 @@ methods
             subIndex = find(packet(packetIndex + 1) == 83);  % 'S'
             if ~isempty(subIndex)
                 packetIndex = packetIndex(subIndex);  % 'KS' index
-                packetLens  = packet(packetIndex + 2);  % 12-bit data length (byte)
-                packetLens  = packetLens + fix(packet(packetIndex + 3) / 16) * 256;
+                packetDataInfo = packet(packetIndex + 2) * 256 + packet(packetIndex + 3);
+                packetLens = mod(packetDataInfo, 2^12);  % 12-bit data length (byte)
 
                 % check checksum
                 checksum = s.getChecksum(packet(packetIndex' + (2:5)'));
@@ -288,7 +287,7 @@ methods
                     if ~isempty(subIndex)
                         packetIndex = packetIndex(subIndex);
                         packetLens  = packetLens(subIndex);
-                        packetInfo  = [packetLens, mod(packet(packetIndex + 3), 16), packet(packetIndex' + (4:6)')']';
+                        packetInfo  = [packetLens, fix(packet(packetIndex + 2) / 16), packet(packetIndex' + (4:6)')']';
 
                         if all(packetLens == packetLens(1))
                             % same lenght
