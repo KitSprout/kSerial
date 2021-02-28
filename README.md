@@ -1,4 +1,5 @@
 ### kSerial packet format  
+https://hackmd.io/@Hom-Wang/kSerialProtocol
 
 | byte 1 | byte 2 | byte 3 | byte 4 | byte 5 | byte 6 | byte 7 |  ...   | byte L + 8 |
 | :----: | :----: | :----: | :----: | :----: | :----: | :----: | :----: | :--------: |
