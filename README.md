@@ -1,5 +1,6 @@
-### kSerial packet format  
-https://hackmd.io/@Hom-Wang/kSerialProtocol
+### kSerial Packet Format
+
+<https://hackmd.io/@Hom-Wang/kSerialProtocol>
 
 | byte 1 | byte 2 | byte 3 | byte 4 | byte 5 | byte 6 | byte 7 |  ...   | byte L + 8 |
 | :----: | :----: | :----: | :----: | :----: | :----: | :----: | :----: | :--------: |
@@ -38,7 +39,14 @@ https://hackmd.io/@Hom-Wang/kSerialProtocol
 |    R4    | 0xF, 4'b1111 |
 
 more information  
-http://kitsprout.logdown.com/posts/883899
+<http://kitsprout.logdown.com/posts/883899>
 
-### Youtube DEMO
-https://youtu.be/MjcuTlffRoM
+### Library
+
+[kSerial_Python](https://github.com/KitSprout/kSerial_Python)  
+[kSerial_Matlab](https://github.com/KitSprout/kSerial_Matlab)  
+[kSerialApp](https://github.com/KitSprout/kSerialApp)  
+
+### Youtube DEMO Video
+
+<https://youtu.be/MjcuTlffRoM>
