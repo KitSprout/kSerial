@@ -6,7 +6,7 @@
  *  /_/|_|/_/ \__//___// .__//_/   \___/\_,_/ \__/  
  *                    /_/   github.com/KitSprout    
  * 
- *  @file    kSerial.h
+ *  @file    kserial.h
  *  @author  KitSprout
  *  @brief   
  * 
@@ -22,11 +22,11 @@ extern "C" {
 
 /* Includes --------------------------------------------------------------------------------*/
 #include <stdint.h>
-#include "kStatus.h"
+#include "kstatus.h"
 #ifndef KSERIAL_RECONFIG
-#include "kSerial_Conf.h"
+#include "kserial_conf.h"
 #else
-#include "kSerial_ReConf.h"
+#include "kserial_reconf.h"
 #endif
 
 /* Define ----------------------------------------------------------------------------------*/
@@ -81,7 +81,7 @@ typedef enum
 
 } kserial_r2_command_t;
 
-typedef void (*pKserialCallback)( kserial_packet_t *pk, uint8_t *data, uint32_t count, uint32_t total );
+typedef void (*pkserial_callback_t)(kserial_packet_t *pk, uint8_t *data, uint32_t count, uint32_t total);
 
 /* Extern ----------------------------------------------------------------------------------*/
 
@@ -91,32 +91,32 @@ extern const char KS_TYPE_FORMATE[KSERIAL_TYPE_LENS][8];
 
 /* Functions -------------------------------------------------------------------------------*/
 
-uint32_t    kSerial_GetTypeSize( uint32_t type );
+uint32_t    kserial_get_typesize(uint32_t type);
 
-uint32_t    kSerial_CheckHeader( const uint8_t *packet, void *param, uint32_t *type, uint32_t *nbyte );
-uint32_t    kSerial_CheckEnd( const uint8_t *packet, uint32_t nbyte );
-uint32_t    kSerial_Check( const uint8_t *packet, void *param, uint32_t *type, uint32_t *nbyte );
-void        kSerial_GetBytesData( const uint8_t *packet, void *pdata, uint32_t nbyte );
+uint32_t    kserial_check_header(const uint8_t *packet, void *param, uint32_t *type, uint32_t *nbyte);
+uint32_t    kserial_check_end(const uint8_t *packet, uint32_t nbyte);
+uint32_t    kserial_check(const uint8_t *packet, void *param, uint32_t *type, uint32_t *nbyte);
+void        kserial_get_bytesdata(const uint8_t *packet, void *pdata, uint32_t nbyte);
 
-uint32_t    kSerial_Pack( uint8_t *packet, const void *param, uint32_t type, uint32_t lens, const void *pdata );
-uint32_t    kSerial_Unpack( const uint8_t *packet, void *param, uint32_t *type, uint32_t *nbyte, void *pdata );
-uint32_t    kSerial_UnpackBuffer( const uint8_t *buffer, uint32_t buffersize, kserial_packet_t *ksp, uint32_t *count );
+uint32_t    kserial_pack(uint8_t *packet, const void *param, uint32_t type, uint32_t lens, const void *pdata);
+uint32_t    kserial_unpack(const uint8_t *packet, void *param, uint32_t *type, uint32_t *nbyte, void *pdata);
+uint32_t    kserial_unpack_buffer(const uint8_t *buffer, uint32_t buffersize, kserial_packet_t *ksp, uint32_t *count);
 
-uint32_t    kSerial_SendPacket( void *param, void *pdata, uint32_t lens, uint32_t type );
-uint32_t    kSerial_RecvPacket( uint8_t input, void *param, void *pdata, uint32_t *lens, uint32_t *type );
+uint32_t    kserial_send_packet(void *param, void *pdata, uint32_t lens, uint32_t type);
+uint32_t    kserial_recv_packet(uint8_t input, void *param, void *pdata, uint32_t *lens, uint32_t *type);
 
-uint32_t    kSerial_Read( kserial_t *ks );
-void        kSerial_ReadFlush( kserial_t *ks );
-void        kSerial_GetPacketData( kserial_packet_t *ksp, void *pdata, uint32_t index );
-uint32_t    kSerial_ContinuousRead( kserial_packet_t *ksp, uint32_t *index, uint32_t *count, uint32_t *total );
+uint32_t    kserial_read(kserial_t *ks );
+void        kserial_flush_read(kserial_t *ks );
+void        kserial_get_packetdata(kserial_packet_t *ksp, void *pdata, uint32_t index);
+uint32_t    kserial_read_continuous(kserial_packet_t *ksp, uint32_t *index, uint32_t *count, uint32_t *total);
 
-uint32_t    kSerial_SendCommand( uint32_t type, uint32_t p1, uint32_t p2, kserial_ack_t *ack );
-uint32_t    kSerial_DeviceCheck( uint32_t *id );
+uint32_t    kserial_send_command(uint32_t type, uint32_t param1, uint32_t param2, kserial_ack_t *ack);
+uint32_t    kserial_check_device(uint32_t *id);
 
-uint32_t    kSerial_TwiReadRegs( uint8_t slaveAddr, uint8_t regAddr, uint8_t *regData, uint8_t lens );
-uint32_t    kSerial_TwiWriteRegs( uint8_t slaveAddr, uint8_t regAddr, uint8_t *regData, uint8_t lens );
-uint32_t    kSerial_TwiScanDevice( uint8_t *slaveAddr );
-uint32_t    kSerial_TwiScanRegister( uint8_t slaveAddr, uint8_t reg[256] );
+uint32_t    kserial_twi_readregs(uint8_t slaveaddr, uint8_t regaddr, uint8_t *regdata, uint8_t lens);
+uint32_t    kserial_twi_writeregs(uint8_t slaveaddr, uint8_t regaddr, uint8_t *regdata, uint8_t lens);
+uint32_t    kserial_twi_scandevice( uint8_t *slaveaddr);
+uint32_t    kserial_twi_scanregister(uint8_t slaveaddr, uint8_t reg[256]);
 
 #ifdef __cplusplus
 }
