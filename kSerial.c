@@ -31,6 +31,8 @@
 /* Typedef ---------------------------------------------------------------------------------*/
 /* Variables -------------------------------------------------------------------------------*/
 
+const char KSERIAL_VERSION[] = KSERIAL_VERSION_DEFINE;
+
 #if KSERIAL_SEND_ENABLE
 static uint8_t sbuffer[KS_MAX_SEND_BUFFER_SIZE] = {0};
 #endif
