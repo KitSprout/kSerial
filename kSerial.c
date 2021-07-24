@@ -142,7 +142,7 @@ uint32_t kserial_check_end(const uint8_t *packet, uint32_t nbyte)
 /**
  *  @brief  kserial_check
  */
-uint32_t kserial_check( const uint8_t *packet, void *param, uint32_t *type, uint32_t *nbyte )
+uint32_t kserial_check(const uint8_t *packet, void *param, uint32_t *type, uint32_t *nbyte)
 {
     uint32_t checksum = 0;
 
@@ -388,7 +388,7 @@ uint32_t kserial_read(kserial_t *ks)
 /**
  *  @brief  kserial_flush_read
  */
-void kserial_flush_read( kserial_t *ks )
+void kserial_flush_read(kserial_t *ks)
 {
 #if KSERIAL_RECV_ENABLE
     kserial_flush_recv();
@@ -456,11 +456,11 @@ uint32_t kserial_read_continuous(kserial_packet_t *ksp, uint32_t *index, uint32_
 }
 
 /**
- *  @brief  kserial_send_command
+ *  @brief  kscmd_send_command
  *  Send packet ['K', 'S', type, 0, param1, param2, ck, '\r']
  *  Recv packet ['K', 'S', type, 0, param1, param2, ck, '\r']
  */
-uint32_t kserial_send_command(uint32_t type, uint32_t param1, uint32_t param2, kserial_ack_t *ack)
+uint32_t kscmd_send_command(uint32_t type, uint32_t param1, uint32_t param2, kserial_ack_t *ack)
 {
 #if KSERIAL_SEND_ENABLE
     uint8_t param[2] = {param1, param2};
@@ -499,15 +499,15 @@ uint32_t kserial_send_command(uint32_t type, uint32_t param1, uint32_t param2, k
 }
 
 /**
- *  @brief  kserial_check_device
+ *  @brief  kscmd_check_device
  *  Send packet ['K', 'S', R0, 0, 0xD0,   0, ck, '\r']
  *  Recv packet ['K', 'S', R0, 0,  IDL, IDH, ck, '\r']
  */
-uint32_t kserial_check_device(uint32_t *id)
+uint32_t kscmd_check_device(uint32_t *id)
 {
 #if KSERIAL_CMD_ENABLE
     kserial_ack_t ack = {0};
-    if (kserial_send_command(KS_R0, KSCMD_R0_DEVICE_ID, 0x00, &ack) != KS_OK)
+    if (kscmd_send_command(KS_R0, KSCMD_R0_DEVICE_ID, 0x00, &ack) != KS_OK)
     {
         return KS_ERROR;
     }
@@ -526,10 +526,68 @@ uint32_t kserial_check_device(uint32_t *id)
 }
 
 /**
- *  @brief  kserial_twi_writereg
+ *  @brief  kscmd_set_baudrate
+ *  Send packet ['K', 'S', R0, 4, 0xD1, 4, ck, BAUD[0:7], BAUD[8:15], BAUD[16:23], BAUD[24:31], '\r']
+ */
+uint32_t kscmd_set_baudrate(int32_t baudrate)
+{
+    if (baudrate < 0)
+    {
+        return KS_ERROR;
+    }
+    uint8_t param[2] = {KSCMD_R0_DEVICE_BAUDRATE, 4};
+    return kserial_send_packet(param, &baudrate, param[1], KS_R0);
+}
+
+/**
+ *  @brief  kscmd_set_updaterate
+ *  Send packet ['K', 'S', R0, 4, 0xD2, 4, ck, FREQ[0:7], FREQ[8:15], FREQ[16:23], FREQ[24:31], '\r']
+ */
+uint32_t kscmd_set_updaterate(int32_t updaterate)
+{
+    if (updaterate < 0)
+    {
+        return KS_ERROR;
+    }
+    uint8_t param[2] = {KSCMD_R0_DEVICE_RATE, 4};
+    return kserial_send_packet(param, &updaterate, param[1], KS_R0);
+}
+
+/**
+ *  @brief  kscmd_set_mode
+ *  Send packet ['K', 'S', R0, 4, 0xD3, 4, ck, MODE[0:7], MODE[8:15], MODE[16:23], MODE[24:31], '\r']
+ */
+uint32_t kscmd_set_mode(int32_t mode)
+{
+    if (mode < 0)
+    {
+        return KS_ERROR;
+    }
+    return kscmd_send_command(KS_R0, KSCMD_R0_DEVICE_MDOE, mode, NULL);
+}
+
+/**
+ *  @brief  kscmd_get_value
+ *  Send packet ['K', 'S', R0, 0, 0xE3, ITEM, ck, '\r']
+ *  Recv packet ['K', 'S', R0, 0, 0xE3, ITEM, ck, VAL[0:7], VAL[8:15], VAL[16:23], VAL[24:31], '\r']
+ */
+uint32_t kscmd_get_value(uint32_t item, int32_t *value)
+{
+    kserial_ack_t ack = {0};
+    if (kscmd_send_command(KS_R0, KSCMD_R0_DEVICE_GET, item, &ack) != KS_OK)
+    {
+        *value = 0;
+        return KS_ERROR;
+    }
+    *value = *(uint32_t*)ack.data;
+    return KS_OK;
+}
+
+/**
+ *  @brief  kscmd_twi_writereg
  *  Send packet ['K', 'S', R1, 1, slaveAddress(8-bit), regAddress, ck, regData, '\r']
  */
-uint32_t kserial_twi_writereg(uint8_t slaveaddr, uint8_t regaddr, uint8_t regdata)
+uint32_t kscmd_twi_writereg(uint8_t slaveaddr, uint8_t regaddr, uint8_t regdata)
 {
 #if KSERIAL_CMD_ENABLE
     uint8_t param[2] = {slaveaddr << 1, regaddr};
@@ -550,11 +608,11 @@ uint32_t kserial_twi_writereg(uint8_t slaveaddr, uint8_t regaddr, uint8_t regdat
 }
 
 /**
- *  @brief  kserial_twi_readregs
+ *  @brief  kscmd_twi_readregs
  *  Send packet ['K', 'S', R1,    1, slaveAddress(8-bit)+1, regAddress, ck, lens, '\r']
  *  Recv packet ['K', 'S', R1, lens, slaveAddress(8-bit)+1, regAddress, ck, regData ..., '\r']
  */
-uint32_t kserial_twi_readregs(uint8_t slaveaddr, uint8_t regaddr, uint8_t *regdata, uint8_t lens)
+uint32_t kscmd_twi_readregs(uint8_t slaveaddr, uint8_t regaddr, uint8_t *regdata, uint8_t lens)
 {
 #if KSERIAL_CMD_ENABLE
     uint8_t param[2] = {(slaveaddr << 1) + 1, regaddr};
@@ -598,10 +656,10 @@ uint32_t kserial_twi_readregs(uint8_t slaveaddr, uint8_t regaddr, uint8_t *regda
 }
 
 /**
- *  @brief  kserial_twi_writeregs
+ *  @brief  kscmd_twi_writeregs
  *  Send packet ['K', 'S', R1, lens, slaveAddress(8-bit), regAddress, ck, regData ... , '\r']
  */
-uint32_t kserial_twi_writeregs( uint8_t slaveaddr, uint8_t regaddr, uint8_t *regdata, uint8_t lens )
+uint32_t kscmd_twi_writeregs(uint8_t slaveaddr, uint8_t regaddr, uint8_t *regdata, uint8_t lens)
 {
 #if KSERIAL_CMD_ENABLE
     uint8_t param[2] = {slaveaddr << 1, regaddr};
@@ -622,11 +680,11 @@ uint32_t kserial_twi_writeregs( uint8_t slaveaddr, uint8_t regaddr, uint8_t *reg
 }
 
 /**
- *  @brief  kserial_twi_scandevice
+ *  @brief  kscmd_twi_scandevice
  *  Send packet ['K', 'S', R2,    0, 0xA1, 0, ck, '\r']
  *  Recv packet ['K', 'S', R2, lens, 0xA1, 0, ck, address ..., '\r']
  */
-uint32_t kserial_twi_scandevice( uint8_t *slaveaddr )
+uint32_t kscmd_twi_scandevice(uint8_t *slaveaddr)
 {
 #if KSERIAL_CMD_ENABLE
     uint8_t param[2] = {KSCMD_R2_TWI_SCAN_DEVICE, 0};
@@ -672,11 +730,11 @@ uint32_t kserial_twi_scandevice( uint8_t *slaveaddr )
 }
 
 /**
- *  @brief  kserial_twi_scanregister
+ *  @brief  kscmd_twi_scanregister
  *  Send packet ['K', 'S', R2,   0, 0xA2, slaveAddress, ck, '\r']
  *  Recv packet ['K', 'S', R2, 256, 0xA2, slaveAddress, ck, address ..., '\r']
  */
-uint32_t kserial_twi_scanregister( uint8_t slaveaddr, uint8_t reg[256] )
+uint32_t kscmd_twi_scanregister(uint8_t slaveaddr, uint8_t reg[256])
 {
 #if KSERIAL_CMD_ENABLE
     uint8_t param[2] = {KSCMD_R2_TWI_SCAN_REGISTER, slaveaddr << 1};

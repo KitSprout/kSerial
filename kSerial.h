@@ -32,7 +32,7 @@ extern "C" {
 /* Define ----------------------------------------------------------------------------------*/
 
 #ifndef KSERIAL_VERSION_DEFINE
-#define KSERIAL_VERSION_DEFINE                          "1.1.0"
+#define KSERIAL_VERSION_DEFINE                          "1.1.2"
 #endif
 
 /* Macro -----------------------------------------------------------------------------------*/
@@ -115,13 +115,18 @@ void        kserial_flush_read(kserial_t *ks );
 void        kserial_get_packetdata(kserial_packet_t *ksp, void *pdata, uint32_t index);
 uint32_t    kserial_read_continuous(kserial_packet_t *ksp, uint32_t *index, uint32_t *count, uint32_t *total);
 
-uint32_t    kserial_send_command(uint32_t type, uint32_t param1, uint32_t param2, kserial_ack_t *ack);
-uint32_t    kserial_check_device(uint32_t *id);
+uint32_t    kscmd_send_command(uint32_t type, uint32_t param1, uint32_t param2, kserial_ack_t *ack);
+uint32_t    kscmd_check_device(uint32_t *id);
 
-uint32_t    kserial_twi_readregs(uint8_t slaveaddr, uint8_t regaddr, uint8_t *regdata, uint8_t lens);
-uint32_t    kserial_twi_writeregs(uint8_t slaveaddr, uint8_t regaddr, uint8_t *regdata, uint8_t lens);
-uint32_t    kserial_twi_scandevice( uint8_t *slaveaddr);
-uint32_t    kserial_twi_scanregister(uint8_t slaveaddr, uint8_t reg[256]);
+uint32_t    kscmd_set_baudrate(int32_t baudrate);
+uint32_t    kscmd_set_updaterate(int32_t updaterate);
+uint32_t    kscmd_set_mode(int32_t mode);
+uint32_t    kscmd_get_value(uint32_t item, int32_t *value);
+
+uint32_t    kscmd_twi_readregs(uint8_t slaveaddr, uint8_t regaddr, uint8_t *regdata, uint8_t lens);
+uint32_t    kscmd_twi_writeregs(uint8_t slaveaddr, uint8_t regaddr, uint8_t *regdata, uint8_t lens);
+uint32_t    kscmd_twi_scandevice( uint8_t *slaveaddr);
+uint32_t    kscmd_twi_scanregister(uint8_t slaveaddr, uint8_t reg[256]);
 
 #ifdef __cplusplus
 }
