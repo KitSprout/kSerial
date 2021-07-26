@@ -6,7 +6,7 @@
  *  /_/|_|/_/ \__//___// .__//_/   \___/\_,_/ \__/  
  *                    /_/   github.com/KitSprout    
  * 
- *  @file    kSerial_Conf.h
+ *  @file    kserial_conf.h
  *  @author  KitSprout
  *  @brief   
  * 
@@ -68,18 +68,18 @@ extern "C" {
 /* Macro -----------------------------------------------------------------------------------*/
 
 #if KSERIAL_SEND_ENABLE
-#ifndef kSerial_Send
-#define kSerial_Send(__DATA, __LENS)                    Serial_SendData(&s, __DATA, __LENS)
-#define kSerial_SendByte(__DATA)                        Serial_SendByte(&s, __DATA)
+#ifndef kserial_send
+#define kserial_send(__DATA, __LENS)                    serial_send_data(&s, __DATA, __LENS)
+#define kserial_sendbyte(__DATA)                        serial_send_byte(&s, __DATA)
 #endif
 #endif
 #if KSERIAL_RECV_ENABLE
-#define kSerial_Recv(__DATA, __LENS)                    Serial_RecvData(&s, __DATA, __LENS)
-#define kSerial_RecvByte()                              Serial_RecvByte(&s)
-#define kSerial_RecvFlush()                             Serial_Flush(&s)
+#define kserial_recv(__DATA, __LENS)                    serial_recv_data(&s, __DATA, __LENS)
+#define kserial_recvbyte()                              serial_recv_byte(&s)
+#define kserial_flush_recv()                            serial_flush(&s)
 #endif
 #if (KSERIAL_SEND_ENABLE || KSERIAL_RECV_ENABLE)
-#define kSerial_Delay(__MS)                             Serial_Delay(__MS)
+#define kserial_delay(__MS)                             serial_delay(__MS)
 #endif
 
 #ifdef __cplusplus

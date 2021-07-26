@@ -6,9 +6,9 @@
  *  /_/|_|/_/ \__//___// .__//_/   \___/\_,_/ \__/  
  *                    /_/   github.com/KitSprout    
  * 
- *  @file    kSerial.c
+ *  @file    kserial.c
  *  @author  KitSprout
- *  @brief   kSerial packet format :
+ *  @brief   kserial packet format :
  *           byte 1   : header 'K' (75)       [HK]
  *           byte 2   : header 'S' (83)       [HS]
  *           byte 3   : data type (4-bit)     [TP]
@@ -24,29 +24,31 @@
 /* Includes --------------------------------------------------------------------------------*/
 #include <stdlib.h>
 #include <string.h>
-#include "kSerial.h"
+#include "kserial.h"
 
 /* Define ----------------------------------------------------------------------------------*/
 /* Macro -----------------------------------------------------------------------------------*/
 /* Typedef ---------------------------------------------------------------------------------*/
 /* Variables -------------------------------------------------------------------------------*/
 
+const char KSERIAL_VERSION[] = KSERIAL_VERSION_DEFINE;
+
 #if KSERIAL_SEND_ENABLE
-uint8_t ksSendBuf[KS_MAX_SEND_BUFFER_SIZE] = {0};
+static uint8_t sbuffer[KS_MAX_SEND_BUFFER_SIZE] = {0};
 #endif
 #if KSERIAL_RECV_ENABLE
-uint8_t ksRecvBuf[KS_MAX_RECV_BUFFER_SIZE] = {0};
+static uint8_t rbuffer[KS_MAX_RECV_BUFFER_SIZE] = {0};
 #endif
 
 #if KSERIAL_RECV_TREAD_ENABLE
-uint8_t ksPacketBuf[KSERIAL_RECV_PACKET_BUFFER_LENS] = {0};
-kserial_packet_t ksPacket[KSERIAL_MAX_PACKET_LENS] = {0};
+static uint8_t pkbuffer[KSERIAL_RECV_PACKET_BUFFER_LENS] = {0};
+static kserial_packet_t kspacket[KSERIAL_MAX_PACKET_LENS] = {0};
 kserial_t ks =
 {
     .size = KSERIAL_RECV_PACKET_BUFFER_LENS,
     .count = 0,
-    .buffer = ksPacketBuf,
-    .packet = ksPacket
+    .buffer = pkbuffer,
+    .packet = kspacket
 };
 #endif
 
@@ -78,12 +80,12 @@ const char KS_TYPE_FORMATE[KSERIAL_TYPE_LENS][8] =
 /* Functions -------------------------------------------------------------------------------*/
 
 /**
- *  @brief  kSerial_GetTypeSize
+ *  @brief  kserial_get_typesize
  */
 #if 1
-#define kSerial_GetTypeSize(__TYPE)     KS_TYPE_SIZE[__TYPE]
+#define kserial_get_typesize(__TYPE)     KS_TYPE_SIZE[__TYPE]
 #else
-uint32_t kSerial_GetTypeSize( uint32_t type )
+uint32_t kserial_get_typesize(uint32_t type)
 {
     type &= 0x0F;
     if ((type > KS_F64) || (type == KS_R0))
@@ -98,9 +100,9 @@ uint32_t kSerial_GetTypeSize( uint32_t type )
 #endif
 
 /**
- *  @brief  kSerial_CheckHeader
+ *  @brief  kserial_check_header
  */
-uint32_t kSerial_CheckHeader( const uint8_t *packet, void *param, uint32_t *type, uint32_t *nbyte )
+uint32_t kserial_check_header(const uint8_t *packet, void *param, uint32_t *type, uint32_t *nbyte)
 {
     uint32_t checksum = 0;
 
@@ -125,9 +127,9 @@ uint32_t kSerial_CheckHeader( const uint8_t *packet, void *param, uint32_t *type
 }
 
 /**
- *  @brief  kSerial_CheckEnd
+ *  @brief  kserial_check_end
  */
-uint32_t kSerial_CheckEnd( const uint8_t *packet, uint32_t nbyte )
+uint32_t kserial_check_end(const uint8_t *packet, uint32_t nbyte)
 {
     if (packet[nbyte + 8 - 1] == '\r')
     {
@@ -138,9 +140,9 @@ uint32_t kSerial_CheckEnd( const uint8_t *packet, uint32_t nbyte )
 }
 
 /**
- *  @brief  kSerial_Check
+ *  @brief  kserial_check
  */
-uint32_t kSerial_Check( const uint8_t *packet, void *param, uint32_t *type, uint32_t *nbyte )
+uint32_t kserial_check(const uint8_t *packet, void *param, uint32_t *type, uint32_t *nbyte)
 {
     uint32_t checksum = 0;
 
@@ -165,9 +167,9 @@ uint32_t kSerial_Check( const uint8_t *packet, void *param, uint32_t *type, uint
 }
 
 /**
- *  @brief  kSerial_GetBytesData
+ *  @brief  kserial_get_bytesdata
  */
-void kSerial_GetBytesData( const uint8_t *packet, void *pdata, uint32_t nbyte )
+void kserial_get_bytesdata(const uint8_t *packet, void *pdata, uint32_t nbyte)
 {
     for (uint32_t i = 0; i < nbyte; i++)
     {
@@ -176,25 +178,25 @@ void kSerial_GetBytesData( const uint8_t *packet, void *pdata, uint32_t nbyte )
 }
 
 /**
- *  @brief  kSerial_Pack
+ *  @brief  kserial_pack
  */
-uint32_t kSerial_Pack( uint8_t *packet, const void *param, uint32_t type, uint32_t lens, const void *pdata )
+uint32_t kserial_pack(uint8_t *packet, const void *param, uint32_t type, uint32_t lens, const void *pdata)
 {
-    uint32_t packetDataBytes;  // in bytes
+    uint32_t databytes;  // in bytes
     uint32_t checksum = 0;
-    uint32_t typeSize = kSerial_GetTypeSize(type);
+    uint32_t typesize = kserial_get_typesize(type);
 
-    packetDataBytes = (typeSize > 1) ? (lens * typeSize) : (lens);
+    databytes = (typesize > 1) ? (lens * typesize) : (lens);
 
-    packet[0] = 'K';                                    // header 'K'
-    packet[1] = 'S';                                    // header 'S'
-    packet[2] = (type << 4) | (packetDataBytes >> 8);   // data type  (4bit)
-    packet[3] = packetDataBytes;                        // data bytes (12bit)
+    packet[0] = 'K';                                // header 'K'
+    packet[1] = 'S';                                // header 'S'
+    packet[2] = (type << 4) | (databytes >> 8);     // data type  (4bit)
+    packet[3] = databytes;                          // data bytes (12bit)
 
     if (param != NULL)
     {
-        packet[4] = ((uint8_t*)param)[0];               // parameter 1
-        packet[5] = ((uint8_t*)param)[1];               // parameter 2
+        packet[4] = ((uint8_t*)param)[0];           // parameter 1
+        packet[5] = ((uint8_t*)param)[1];           // parameter 2
     }
     else
     {
@@ -205,28 +207,28 @@ uint32_t kSerial_Pack( uint8_t *packet, const void *param, uint32_t type, uint32
     {
         checksum += packet[i];
     }
-    packet[6] = checksum;                               // checksum
+    packet[6] = checksum;                           // checksum
 
     if (pdata != NULL)
     {
-        for (uint32_t i = 0; i < packetDataBytes; i++)
+        for (uint32_t i = 0; i < databytes; i++)
         {
-            packet[7 + i] = ((uint8_t*)pdata)[i];       // data ...
+            packet[7 + i] = ((uint8_t*)pdata)[i];   // data ...
         }
     }
-    packet[7 + packetDataBytes] = '\r';                 // finish '\r'
+    packet[7 + databytes] = '\r';                   // finish '\r'
 
-    return (packetDataBytes + 8);
+    return (databytes + 8);
 }
 
 /**
- *  @brief  kSerial_Unpack
+ *  @brief  kserial_unpack
  */
-uint32_t kSerial_Unpack( const uint8_t *packet, void *param, uint32_t *type, uint32_t *nbyte, void *pdata )
+uint32_t kserial_unpack(const uint8_t *packet, void *param, uint32_t *type, uint32_t *nbyte, void *pdata)
 {
     uint32_t status;
 
-    status = kSerial_Check(packet, param, type, nbyte);
+    status = kserial_check(packet, param, type, nbyte);
     if ((status == KS_OK) && (pdata != NULL))
     {
         for (uint32_t i = 0; i < *nbyte; i++)
@@ -239,9 +241,9 @@ uint32_t kSerial_Unpack( const uint8_t *packet, void *param, uint32_t *type, uin
 }
 
 /**
- *  @brief  kSerial_UnpackBuffer
+ *  @brief  kserial_unpack_buffer
  */
-uint32_t kSerial_UnpackBuffer( const uint8_t *buffer, uint32_t buffersize, kserial_packet_t *ksp, uint32_t *count )
+uint32_t kserial_unpack_buffer(const uint8_t *buffer, uint32_t buffersize, kserial_packet_t *ksp, uint32_t *count)
 {
     uint32_t status;
     uint32_t offset = 0;
@@ -252,7 +254,7 @@ uint32_t kSerial_UnpackBuffer( const uint8_t *buffer, uint32_t buffersize, kseri
 
     while ((buffersize - offset) > 7)   // min packet bytes = 8
     {
-        status = kSerial_Check(&buffer[offset], ksp[*count].param, &ksp[*count].type, &ksp[*count].nbyte);
+        status = kserial_check(&buffer[offset], ksp[*count].param, &ksp[*count].type, &ksp[*count].nbyte);
         if (status == KS_OK)
         {
             if ((offset + ksp[*count].nbyte + 8) > buffersize)
@@ -260,8 +262,8 @@ uint32_t kSerial_UnpackBuffer( const uint8_t *buffer, uint32_t buffersize, kseri
                 break;
             }
             ksp[*count].data = (void *)malloc(ksp[*count].nbyte * sizeof(uint8_t));
-            kSerial_GetBytesData(&buffer[offset], ksp[*count].data, ksp[*count].nbyte);
-            typesize = kSerial_GetTypeSize(ksp[*count].type);
+            kserial_get_bytesdata(&buffer[offset], ksp[*count].data, ksp[*count].nbyte);
+            typesize = kserial_get_typesize(ksp[*count].type);
             if (typesize > 1)
             {
                 ksp[*count].lens = ksp[*count].nbyte / typesize;
@@ -280,14 +282,14 @@ uint32_t kSerial_UnpackBuffer( const uint8_t *buffer, uint32_t buffersize, kseri
 }
 
 /**
- *  @brief  kSerial_SendPacket
+ *  @brief  kserial_send_packet
  */
-uint32_t kSerial_SendPacket( void *param, void *pdata, uint32_t lens, uint32_t type )
+uint32_t kserial_send_packet(void *param, void *pdata, uint32_t lens, uint32_t type)
 {
 #if KSERIAL_SEND_ENABLE
     uint32_t nbytes;
-    nbytes = kSerial_Pack(ksSendBuf, param, type, lens, pdata);
-    kSerial_Send(ksSendBuf, nbytes);
+    nbytes = kserial_pack(sbuffer, param, type, lens, pdata);
+    kserial_send(sbuffer, nbytes);
     // TODO: fix return
     return nbytes;
 #else
@@ -296,9 +298,9 @@ uint32_t kSerial_SendPacket( void *param, void *pdata, uint32_t lens, uint32_t t
 }
 
 /**
- *  @brief  kSerial_RecvPacket
+ *  @brief  kserial_recv_packet
  */
-uint32_t kSerial_RecvPacket( uint8_t input, void *param, void *pdata, uint32_t *lens, uint32_t *type )
+uint32_t kserial_recv_packet(uint8_t input, void *param, void *pdata, uint32_t *lens, uint32_t *type)
 {
 #if KSERIAL_RECV_ENABLE
     static uint32_t index = 0;
@@ -306,28 +308,28 @@ uint32_t kSerial_RecvPacket( uint8_t input, void *param, void *pdata, uint32_t *
     static uint32_t point = 0;
 
     uint32_t state;
-    uint32_t typeSize;
+    uint32_t typesize;
 
-    ksRecvBuf[point] = input;
+    rbuffer[point] = input;
     if (point > 6)
     {
-        if ((ksRecvBuf[point - 7] == 'K') && (ksRecvBuf[point - 6] == 'S'))
+        if ((rbuffer[point - 7] == 'K') && (rbuffer[point - 6] == 'S'))
         {
             index = point - 7;
-            bytes = (((ksRecvBuf[index + 2] << 8) | ksRecvBuf[index + 3]) & 0x0FFF) + 8;
+            bytes = (((rbuffer[index + 2] << 8) | rbuffer[index + 3]) & 0x0FFF) + 8;
         }
         if ((point - index + 1) == bytes)
         {
-            state = kSerial_Unpack(&ksRecvBuf[index], param, type, lens, pdata);
+            state = kserial_unpack(&rbuffer[index], param, type, lens, pdata);
             if (state == KS_OK)
             {
                 point = 0;
                 index = 0;
                 bytes = 0;
-                typeSize = kSerial_GetTypeSize(*type);
-                if (typeSize > 1)
+                typesize = kserial_get_typesize(*type);
+                if (typesize > 1)
                 {
-                    *lens /= typeSize;
+                    *lens /= typesize;
                 }
                 return KS_OK;
             }
@@ -344,9 +346,9 @@ uint32_t kSerial_RecvPacket( uint8_t input, void *param, void *pdata, uint32_t *
 }
 
 /**
- *  @brief  kSerial_Read
+ *  @brief  kserial_read
  */
-uint32_t kSerial_Read( kserial_t *ks )
+uint32_t kserial_read(kserial_t *ks)
 {
 #if KSERIAL_RECV_ENABLE
     uint32_t available = 0;
@@ -355,7 +357,7 @@ uint32_t kSerial_Read( kserial_t *ks )
 
     do
     {   // add rx data to packet buffer
-        nbyte = kSerial_Recv(&ks->buffer[ks->count], ks->size - ks->count);
+        nbyte = kserial_recv(&ks->buffer[ks->count], ks->size - ks->count);
         if (nbyte)
         {
             available = 1;
@@ -367,7 +369,7 @@ uint32_t kSerial_Read( kserial_t *ks )
     ks->pkcnt = 0;
     if (available)
     {
-        newindex = kSerial_UnpackBuffer(ks->buffer, ks->count, ks->packet, &ks->pkcnt);
+        newindex = kserial_unpack_buffer(ks->buffer, ks->count, ks->packet, &ks->pkcnt);
         if (ks->pkcnt)
         {
             // update packet buffer
@@ -384,21 +386,21 @@ uint32_t kSerial_Read( kserial_t *ks )
 }
 
 /**
- *  @brief  kSerial_ReadFlush
+ *  @brief  kserial_flush_read
  */
-void kSerial_ReadFlush( kserial_t *ks )
+void kserial_flush_read(kserial_t *ks)
 {
 #if KSERIAL_RECV_ENABLE
-    kSerial_RecvFlush();
+    kserial_flush_recv();
     memset(ks->buffer, 0, ks->size);
     ks->count = 0;
 #endif
 }
 
 /**
- *  @brief  kSerial_GetFrequence
+ *  @brief  kserial_get_frequence
  */
-// float kSerial_GetFrequence( uint32_t lens, uint32_t time, uint32_t count )
+// float kserial_get_frequence(uint32_t lens, uint32_t time, uint32_t count)
 // {
 //     // static uint64_t kslensLast = 0;
 //     // static uint64_t ksTimeLast = 0;
@@ -413,9 +415,9 @@ void kSerial_ReadFlush( kserial_t *ks )
 // }
 
 /**
- *  @brief  kSerial_GetPacketData
+ *  @brief  kserial_get_packetdata
  */
-void kSerial_GetPacketData( kserial_packet_t *ksp, void *pdata, uint32_t index )
+void kserial_get_packetdata(kserial_packet_t *ksp, void *pdata, uint32_t index)
 {
     if (pdata != NULL)
     {
@@ -425,21 +427,21 @@ void kSerial_GetPacketData( kserial_packet_t *ksp, void *pdata, uint32_t index )
 }
 
 /**
- *  @brief  kSerial_ContinuousRead
+ *  @brief  kserial_read_continuous
  */
-uint32_t kSerial_ContinuousRead( kserial_packet_t *ksp, uint32_t *index, uint32_t *count, uint32_t *total )
+uint32_t kserial_read_continuous(kserial_packet_t *ksp, uint32_t *index, uint32_t *count, uint32_t *total)
 {
 #if KSERIAL_RECV_TREAD_ENABLE
     if ((*count == 0) || (*index >= *count))
     {
-        *count = kSerial_Read(&ks);
+        *count = kserial_read(&ks);
         if (*count == 0)
         {
             return KS_ERROR;
         }
         *index = 0;
     }
-    kSerial_GetPacketData(ks.packet, ksp->data, *index);
+    kserial_get_packetdata(ks.packet, ksp->data, *index);
     ksp->param[0] = ks.packet[*index].param[0];
     ksp->param[1] = ks.packet[*index].param[1];
     ksp->type = ks.packet[*index].type;
@@ -454,25 +456,25 @@ uint32_t kSerial_ContinuousRead( kserial_packet_t *ksp, uint32_t *index, uint32_
 }
 
 /**
- *  @brief  kSerial_SendCommand
+ *  @brief  kscmd_send_command
  *  Send packet ['K', 'S', type, 0, param1, param2, ck, '\r']
  *  Recv packet ['K', 'S', type, 0, param1, param2, ck, '\r']
  */
-uint32_t kSerial_SendCommand( uint32_t type, uint32_t p1, uint32_t p2, kserial_ack_t *ack )
+uint32_t kscmd_send_command(uint32_t type, uint32_t param1, uint32_t param2, kserial_ack_t *ack)
 {
 #if KSERIAL_SEND_ENABLE
-    uint8_t param[2] = {p1, p2};
+    uint8_t param[2] = {param1, param2};
     uint32_t nbytes;
     uint32_t status = KS_OK;
 
 #if KSERIAL_RECV_ENABLE
     if (ack != NULL)
     {
-        kSerial_RecvFlush();
+        kserial_flush_recv();
     }
 #endif
-    nbytes = kSerial_Pack(ksSendBuf, param, type, 0, NULL);
-    kSerial_Send(ksSendBuf, nbytes);
+    nbytes = kserial_pack(sbuffer, param, type, 0, NULL);
+    kserial_send(sbuffer, nbytes);
 #if KSERIAL_RECV_ENABLE
     if (ack != NULL)
     {
@@ -480,14 +482,14 @@ uint32_t kSerial_SendCommand( uint32_t type, uint32_t p1, uint32_t p2, kserial_a
         nbytes = 0;
         while (nbytes == 0)
         {
-            kSerial_Delay(50);
-            nbytes = kSerial_Recv(ksRecvBuf, KS_MAX_RECV_BUFFER_SIZE);
+            kserial_delay(50);
+            nbytes = kserial_recv(rbuffer, KS_MAX_RECV_BUFFER_SIZE);
         }
 #else
-        kSerial_Delay(50);
-        nbytes = kSerial_Recv(ksRecvBuf, KS_MAX_RECV_BUFFER_SIZE);
+        kserial_delay(50);
+        nbytes = kserial_recv(rbuffer, KS_MAX_RECV_BUFFER_SIZE);
 #endif
-        status = kSerial_Unpack(ksRecvBuf, ack->param, &ack->type, &ack->nbyte, ack->data);
+        status = kserial_unpack(rbuffer, ack->param, &ack->type, &ack->nbyte, ack->data);
     }
 #endif
     return status;
@@ -497,15 +499,15 @@ uint32_t kSerial_SendCommand( uint32_t type, uint32_t p1, uint32_t p2, kserial_a
 }
 
 /**
- *  @brief  kSerial_DeviceCheck
+ *  @brief  kscmd_check_device
  *  Send packet ['K', 'S', R0, 0, 0xD0,   0, ck, '\r']
  *  Recv packet ['K', 'S', R0, 0,  IDL, IDH, ck, '\r']
  */
-uint32_t kSerial_DeviceCheck( uint32_t *id )
+uint32_t kscmd_check_device(uint32_t *id)
 {
 #if KSERIAL_CMD_ENABLE
     kserial_ack_t ack = {0};
-    if (kSerial_SendCommand(KS_R0, KSCMD_R0_DEVICE_ID, 0x00, &ack) != KS_OK)
+    if (kscmd_send_command(KS_R0, KSCMD_R0_DEVICE_ID, 0x00, &ack) != KS_OK)
     {
         return KS_ERROR;
     }
@@ -524,20 +526,78 @@ uint32_t kSerial_DeviceCheck( uint32_t *id )
 }
 
 /**
- *  @brief  kSerial_TwiWriteReg
+ *  @brief  kscmd_set_baudrate
+ *  Send packet ['K', 'S', R0, 4, 0xD1, 4, ck, BAUD[0:7], BAUD[8:15], BAUD[16:23], BAUD[24:31], '\r']
+ */
+uint32_t kscmd_set_baudrate(int32_t baudrate)
+{
+    if (baudrate < 0)
+    {
+        return KS_ERROR;
+    }
+    uint8_t param[2] = {KSCMD_R0_DEVICE_BAUDRATE, 4};
+    return kserial_send_packet(param, &baudrate, param[1], KS_R0);
+}
+
+/**
+ *  @brief  kscmd_set_updaterate
+ *  Send packet ['K', 'S', R0, 4, 0xD2, 4, ck, FREQ[0:7], FREQ[8:15], FREQ[16:23], FREQ[24:31], '\r']
+ */
+uint32_t kscmd_set_updaterate(int32_t updaterate)
+{
+    if (updaterate < 0)
+    {
+        return KS_ERROR;
+    }
+    uint8_t param[2] = {KSCMD_R0_DEVICE_RATE, 4};
+    return kserial_send_packet(param, &updaterate, param[1], KS_R0);
+}
+
+/**
+ *  @brief  kscmd_set_mode
+ *  Send packet ['K', 'S', R0, 4, 0xD3, 4, ck, MODE[0:7], MODE[8:15], MODE[16:23], MODE[24:31], '\r']
+ */
+uint32_t kscmd_set_mode(int32_t mode)
+{
+    if (mode < 0)
+    {
+        return KS_ERROR;
+    }
+    return kscmd_send_command(KS_R0, KSCMD_R0_DEVICE_MDOE, mode, NULL);
+}
+
+/**
+ *  @brief  kscmd_get_value
+ *  Send packet ['K', 'S', R0, 0, 0xE3, ITEM, ck, '\r']
+ *  Recv packet ['K', 'S', R0, 0, 0xE3, ITEM, ck, VAL[0:7], VAL[8:15], VAL[16:23], VAL[24:31], '\r']
+ */
+uint32_t kscmd_get_value(uint32_t item, int32_t *value)
+{
+    kserial_ack_t ack = {0};
+    if (kscmd_send_command(KS_R0, KSCMD_R0_DEVICE_GET, item, &ack) != KS_OK)
+    {
+        *value = 0;
+        return KS_ERROR;
+    }
+    *value = *(uint32_t*)ack.data;
+    return KS_OK;
+}
+
+/**
+ *  @brief  kscmd_twi_writereg
  *  Send packet ['K', 'S', R1, 1, slaveAddress(8-bit), regAddress, ck, regData, '\r']
  */
-uint32_t kSerial_TwiWriteReg( uint8_t slaveAddr, uint8_t regAddr, uint8_t regData )
+uint32_t kscmd_twi_writereg(uint8_t slaveaddr, uint8_t regaddr, uint8_t regdata)
 {
 #if KSERIAL_CMD_ENABLE
-    uint8_t param[2] = {slaveAddr << 1, regAddr};
+    uint8_t param[2] = {slaveaddr << 1, regaddr};
     uint32_t type = KS_R1;
     uint32_t nbytes;
 
-    kSerial_RecvFlush();
+    kserial_flush_recv();
 
-    nbytes = kSerial_Pack(ksSendBuf, param, type, 1, &regData);
-    kSerial_Send(ksSendBuf, nbytes);
+    nbytes = kserial_pack(sbuffer, param, type, 1, &regdata);
+    kserial_send(sbuffer, nbytes);
 #if 0
     klogd("[W] param = %02X, %02X, type = %d, bytes = %d, data = %02X\n", param[0], param[1], type, nbytes, wdata);
 #endif
@@ -548,37 +608,37 @@ uint32_t kSerial_TwiWriteReg( uint8_t slaveAddr, uint8_t regAddr, uint8_t regDat
 }
 
 /**
- *  @brief  kSerial_TwiReadRegs
+ *  @brief  kscmd_twi_readregs
  *  Send packet ['K', 'S', R1,    1, slaveAddress(8-bit)+1, regAddress, ck, lens, '\r']
  *  Recv packet ['K', 'S', R1, lens, slaveAddress(8-bit)+1, regAddress, ck, regData ..., '\r']
  */
-uint32_t kSerial_TwiReadRegs( uint8_t slaveAddr, uint8_t regAddr, uint8_t *regData, uint8_t lens )
+uint32_t kscmd_twi_readregs(uint8_t slaveaddr, uint8_t regaddr, uint8_t *regdata, uint8_t lens)
 {
 #if KSERIAL_CMD_ENABLE
-    uint8_t param[2] = {(slaveAddr << 1) + 1, regAddr};
+    uint8_t param[2] = {(slaveaddr << 1) + 1, regaddr};
     uint32_t type = KS_R1;
     uint32_t nbytes;
     uint32_t status;
 
-    kSerial_RecvFlush();
+    kserial_flush_recv();
 
-    nbytes = kSerial_Pack(ksSendBuf, param, type, 1, &lens);
-    kSerial_Send(ksSendBuf, nbytes);
+    nbytes = kserial_pack(sbuffer, param, type, 1, &lens);
+    kserial_send(sbuffer, nbytes);
 
     nbytes = 0;
     while (nbytes == 0)
     {
-        kSerial_Delay(100);
-        nbytes = kSerial_Recv(ksRecvBuf, KS_MAX_RECV_BUFFER_SIZE);
+        kserial_delay(100);
+        nbytes = kserial_recv(rbuffer, KS_MAX_RECV_BUFFER_SIZE);
     }
 
     // TODO: check i2cbuff first 'KS'
-    status = kSerial_Unpack(ksRecvBuf, param, &type, &nbytes, ksSendBuf);
+    status = kserial_unpack(rbuffer, param, &type, &nbytes, sbuffer);
     if (status == KS_OK)
     {
         for (uint32_t i = 0; i < nbytes; i++)
         {
-            regData[i] = ksSendBuf[i];
+            regdata[i] = sbuffer[i];
         }
 #if 0
         klogd("[R] param = %02X, %02X, type = %d, bytes = %d, data =", param[0], param[1], type, nbytes + 8);
@@ -596,20 +656,20 @@ uint32_t kSerial_TwiReadRegs( uint8_t slaveAddr, uint8_t regAddr, uint8_t *regDa
 }
 
 /**
- *  @brief  kSerial_TwiWriteRegs
+ *  @brief  kscmd_twi_writeregs
  *  Send packet ['K', 'S', R1, lens, slaveAddress(8-bit), regAddress, ck, regData ... , '\r']
  */
-uint32_t kSerial_TwiWriteRegs( uint8_t slaveAddr, uint8_t regAddr, uint8_t *regData, uint8_t lens )
+uint32_t kscmd_twi_writeregs(uint8_t slaveaddr, uint8_t regaddr, uint8_t *regdata, uint8_t lens)
 {
 #if KSERIAL_CMD_ENABLE
-    uint8_t param[2] = {slaveAddr << 1, regAddr};
+    uint8_t param[2] = {slaveaddr << 1, regaddr};
     uint32_t type = KS_R1;
     uint32_t nbytes;
 
-    kSerial_RecvFlush();
+    kserial_flush_recv();
 
-    nbytes = kSerial_Pack(ksSendBuf, param, type, lens, regData);
-    kSerial_Send(ksSendBuf, nbytes);
+    nbytes = kserial_pack(sbuffer, param, type, lens, regdata);
+    kserial_send(sbuffer, nbytes);
 #if 0
     klogd("[W] param = %02X, %02X, type = %d, bytes = %d, data = %02X\n", param[0], param[1], type, nbytes, wdata);
 #endif
@@ -620,11 +680,11 @@ uint32_t kSerial_TwiWriteRegs( uint8_t slaveAddr, uint8_t regAddr, uint8_t *regD
 }
 
 /**
- *  @brief  kSerial_TwiScanDevice
+ *  @brief  kscmd_twi_scandevice
  *  Send packet ['K', 'S', R2,    0, 0xA1, 0, ck, '\r']
  *  Recv packet ['K', 'S', R2, lens, 0xA1, 0, ck, address ..., '\r']
  */
-uint32_t kSerial_TwiScanDevice( uint8_t *slaveAddr )
+uint32_t kscmd_twi_scandevice(uint8_t *slaveaddr)
 {
 #if KSERIAL_CMD_ENABLE
     uint8_t param[2] = {KSCMD_R2_TWI_SCAN_DEVICE, 0};
@@ -633,28 +693,28 @@ uint32_t kSerial_TwiScanDevice( uint8_t *slaveAddr )
     uint32_t status;
     uint32_t count;
 
-    kSerial_RecvFlush();
+    kserial_flush_recv();
 
-    nbytes = kSerial_Pack(ksSendBuf, param, type, 0, NULL);
-    kSerial_Send(ksSendBuf, nbytes);
+    nbytes = kserial_pack(sbuffer, param, type, 0, NULL);
+    kserial_send(sbuffer, nbytes);
 
-    kSerial_Delay(100);
-    nbytes = kSerial_Recv(ksRecvBuf, KS_MAX_RECV_BUFFER_SIZE);
+    kserial_delay(100);
+    nbytes = kserial_recv(rbuffer, KS_MAX_RECV_BUFFER_SIZE);
 
     // TODO: check i2cbuff first 'KS'
-    status = kSerial_Unpack(ksRecvBuf, param, &type, &count, ksSendBuf);
+    status = kserial_unpack(rbuffer, param, &type, &count, sbuffer);
     if (status == KS_OK)
     {
         for (uint32_t i = 0; i < count; i++)
         {
-            slaveAddr[i] = ksSendBuf[i];
+            slaveaddr[i] = sbuffer[i];
         }
 #if 0
         klogd(" >> i2c device list (found %d device)\n\n", count);
         klogd("    ");
         for (uint32_t i = 0; i < count; i++)
         {
-            klogd(" %02X", slaveAddr[i]);
+            klogd(" %02X", slaveaddr[i]);
         }
         klogd("\n\n");
 #endif
@@ -670,37 +730,37 @@ uint32_t kSerial_TwiScanDevice( uint8_t *slaveAddr )
 }
 
 /**
- *  @brief  kSerial_TwiScanRegister
+ *  @brief  kscmd_twi_scanregister
  *  Send packet ['K', 'S', R2,   0, 0xA2, slaveAddress, ck, '\r']
  *  Recv packet ['K', 'S', R2, 256, 0xA2, slaveAddress, ck, address ..., '\r']
  */
-uint32_t kSerial_TwiScanRegister( uint8_t slaveAddr, uint8_t reg[256] )
+uint32_t kscmd_twi_scanregister(uint8_t slaveaddr, uint8_t reg[256])
 {
 #if KSERIAL_CMD_ENABLE
-    uint8_t param[2] = {KSCMD_R2_TWI_SCAN_REGISTER, slaveAddr << 1};
+    uint8_t param[2] = {KSCMD_R2_TWI_SCAN_REGISTER, slaveaddr << 1};
     uint32_t type = KS_R2;
     uint32_t nbytes;
     uint32_t status;
 
-    kSerial_RecvFlush();
+    kserial_flush_recv();
 
-    nbytes = kSerial_Pack(ksSendBuf, param, type, 0, NULL);
-    kSerial_Send(ksSendBuf, nbytes);
+    nbytes = kserial_pack(sbuffer, param, type, 0, NULL);
+    kserial_send(sbuffer, nbytes);
 
-    kSerial_Delay(100);
-    nbytes = kSerial_Recv(ksRecvBuf, KS_MAX_RECV_BUFFER_SIZE);
+    kserial_delay(100);
+    nbytes = kserial_recv(rbuffer, KS_MAX_RECV_BUFFER_SIZE);
 
     // TODO: check i2cbuff first 'KS'
-    status = kSerial_Unpack(ksRecvBuf, param, &type, &nbytes, ksSendBuf);
+    status = kserial_unpack(rbuffer, param, &type, &nbytes, sbuffer);
     if (status == KS_OK)
     {
         for (uint32_t i = 0; i < 256; i++)
         {
-            reg[i] = ksSendBuf[i];
+            reg[i] = sbuffer[i];
         }
 #if 0
         klogd("\n");
-        klogd(" >> i2c device register (address 0x%02X)\n\n", slaveAddr);
+        klogd(" >> i2c device register (address 0x%02X)\n\n", slaveaddr);
         prklogdintf("      0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F\n");
         for (uint32_t i = 0; i < 256; i += 16)
         {

@@ -6,7 +6,7 @@
  *  /_/|_|/_/ \__//___// .__//_/   \___/\_,_/ \__/  
  *                    /_/   github.com/KitSprout    
  * 
- *  @file    kStatus.h
+ *  @file    kstatus.h
  *  @author  KitSprout
  *  @brief   
  * 
